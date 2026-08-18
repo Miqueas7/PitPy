@@ -59,8 +59,13 @@ diseno.a_dxf("pit_operativo.dxf")
 
 ## Documentación
 
+> **¿Recién llegas al proyecto?** Empieza por
+> **[docs/EMPEZAR_AQUI.md](docs/EMPEZAR_AQUI.md)**.
+
 | Documento | Qué contiene |
 |---|---|
+| [docs/EMPEZAR_AQUI.md](docs/EMPEZAR_AQUI.md) | **Arranque**: contexto, entorno, trampas conocidas |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | Qué hacer, en qué orden, y cómo saber que está bien |
 | [docs/ESPECIFICACION.md](docs/ESPECIFICACION.md) | Los requisitos, en palabras del usuario experto |
 | [docs/CASO_BASE.md](docs/CASO_BASE.md) | El caso real medido, con sus números |
 | [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) | Cómo está pensado el motor y por qué |
