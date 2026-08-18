@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pitpy"
+version = "0.1.0.dev0"
+description = "Convierte una carcaza de pit optimizado en un diseño geométrico operativo: bancos, bermas y rampa"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Miqueas Quintanilla" }]
+keywords = ["mining", "open-pit", "mine-design", "pit-design", "dxf", "mineria"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = ["numpy>=1.24,<2"]   # <2: hay VPS sin soporte x86-64-v2
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "pytest-cov"]
+
+[project.urls]
+Homepage = "https://github.com/Miqueas7/PitPy"
+Issues = "https://github.com/Miqueas7/PitPy/issues"
+
+[project.scripts]
+pitpy = "pitpy.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
