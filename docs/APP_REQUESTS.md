@@ -49,7 +49,37 @@ nada más. Es la única excepción a «no toques el otro repo».
 
 ## PENDIENTES
 
-_(ninguno — canal creado el 2026-08-21)_
+### REQ-MOT-001 — El motor ahora trae una extensión compilada: verificá el `.exe` 🔴
+
+**Fecha:** 2026-08-21 · **Prioridad:** ALTA · **Estado:** 📝 Pedido
+**Qué necesito de la App:** que cuando armes el ejecutable (APP-3) confirmes, **abriendo
+la ventana y calculando un diseño de verdad**, que el `.exe` incluye la extensión del motor
+y no se cae al importarla. Y que me digas cuánto creció el `.exe`.
+
+**Por qué:** PitPy dejó de ser Python puro. Los tres kernels de grilla —rasterizado,
+distancia y marching squares— están en C++ con nanobind. La API **no cambió en nada**: ni
+una firma, ni un tipo de retorno; el contrato sigue igual. Lo que cambió es el paquete:
+antes era una rueda universal, ahora hay una rueda por plataforma con un `.pyd` adentro
+(`pitpy/_nucleo.pyd` en Windows).
+
+**Antes → después:** `pip install pitpy` seguía funcionando igual; lo que cambia es que
+PyInstaller tiene que **empacar el binario**. Suele detectarlo solo, pero cuando no lo hace
+el síntoma es feo y tardío: el `.exe` se arma sin error y revienta al abrirse con
+`ModuleNotFoundError: pitpy._nucleo`. Si te pasa, se arregla con
+`--collect-binaries pitpy` (o un `hiddenimports=['pitpy._nucleo']` en el `.spec`).
+
+**Rompe si no se hace:** el ejecutable que le mandes a Yhonny no abre. No es un detalle de
+empaquetado: es la diferencia entre que pueda probar la herramienta o no.
+
+**Cómo saber si quedó bien, sin depender de que reviente:** el motor expone
+`pitpy.superficie.NUCLEO_COMPILADO`. Si es `False`, el `.exe` se armó sin el núcleo y está
+corriendo la implementación de respaldo en Python: anda igual pero **entre 4 y 6 veces más
+lento**, y eso en la ventana se nota. Vale la pena que lo chequees al arrancar.
+
+**Commit del motor:** el de esta sesión (`feat: nucleo C++ ...`).
+
+**Respuesta de la App** — _(la escribe el agente de PitForge)_
+> **Fecha:** — · **Veredicto:** — · **Conectado en:** —
 
 ---
 

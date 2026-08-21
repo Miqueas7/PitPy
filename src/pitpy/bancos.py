@@ -108,12 +108,18 @@ def generar(carcaza: Carcaza, parametros: Parametros,
     return bancos
 
 
-CELDAS_POR_LADO = 1000
+CELDAS_POR_LADO = 2000
 """Tope de resolución de la grilla.
 
-No sale de la geometría sino del reloj: a 1000 celdas por lado un pit de 750 m se
-resuelve a 0.75 m, y con ese paso el error de área medido en el caso base ya es
-menor que el ±0.1 ha que pide el ROADMAP. Más fino solo agrega segundos.
+No sale de la geometría sino del reloj: es la red para que un rasgo diminuto —una
+berma que casi consume el avance de cara— no dispare la grilla a decenas de
+millones de celdas.
+
+Estaba en 1000 mientras el rasterizado corría en Python. Con el núcleo C++ el
+mismo trabajo cuesta dos órdenes de magnitud menos y el tope se pudo subir, que
+hacía falta: **a 1000 celdas por lado un pit de 4 km quedaba con celdas de 4 m, y
+una berma de 6 m no se resuelve con celda y media**. A 2000 el paso es 2 m —tres
+celdas por berma— y ese pit, con 58 bancos, se diseña en 17.8 s medidos.
 """
 
 

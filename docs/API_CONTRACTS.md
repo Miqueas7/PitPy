@@ -84,6 +84,10 @@ puede usar hoy contra el motor de verdad, y lo que necesita doble de prueba:
 | `Diseno.reporte()` | ⬜ levanta `NotImplementedError` hasta MOT-2 |
 | `Diseno.a_dxf()` | ⬜ levanta `NotImplementedError` hasta MOT-3 |
 
+**Desde el 2026-08-21 el motor trae un núcleo compilado en C++** (`pitpy._nucleo`).
+La API no cambia en nada — ninguna firma, ningún tipo de retorno—; lo que cambia es
+el empaquetado: hay una rueda por plataforma en vez de una universal. Ver REQ-MOT-001.
+
 De las etapas de `progreso()` hoy se emiten solo `"detectando talud"` y
 `"generando bancos"`. Las otras tres aparecen cuando exista lo que reportan; la
 fracción siempre termina en 1.0.

@@ -5,6 +5,126 @@ verificó, qué quedó pendiente).
 
 ---
 
+## 2026-08-21 — Núcleo C++ (nanobind) para los tres kernels de grilla · REQ-MOT-001
+
+**1. Qué y por qué**
+
+Miqueas preguntó si Python puro iba a aguantar volúmenes grandes. Lo medí antes de opinar:
+un pit de 4 km con 58 bancos tardaba 23 s, y solo rasterizar su malla a paso 2 m eran 275 s.
+Mi recomendación fue otra —limitar el trabajo a la franja pegada a la pared, que es un
+cambio algorítmico con ~130× y sin dependencias—, pero la decisión fue núcleo C++ como
+VentPy, y eso se hizo, completo.
+
+**Qué se llevó a C++ y qué NO.** Tres funciones: rasterizar la malla a la grilla, la
+distancia euclídea hasta una región, y marching squares. Nada más. Toda la geometría de
+minas —qué es un banco, dónde va el fondo, qué se le avisa al usuario, los mensajes de
+error— se queda en Python, donde se lee y se discute con el ingeniero.
+
+**La implementación en Python no se borró**, y esa es la decisión de diseño que importa:
+cada kernel conserva su gemela legible (`_rasterizar_python`, `_distancia_python`,
+`_contornos_python`) y `tests/test_nucleo.py` exige que las dos den el mismo resultado.
+Sin ese test, «lo reescribí en C++ y anda más rápido» es una afirmación sin respaldo:
+podría andar más rápido y estar mal. También es el respaldo si alguien instala el sdist sin
+compilador (`NUCLEO_COMPILADO` dice cuál está corriendo).
+
+Un kernel se pudo mejorar de verdad, no solo traducir: la distancia en Python es fuerza
+bruta sobre una ventana, O(celdas × offsets), y por eso necesitaba un tope de radio. En C++
+es la transformada de Felzenszwalb & Huttenlocher: **exactamente el mismo resultado** en
+O(celdas), sin tope.
+
+**2. Criterio de aceptación → evidencia**
+
+| Criterio | Evidencia |
+|---|---|
+| El núcleo da lo mismo que la referencia | ✅ 24 tests diferenciales nuevos; en el rasterizado y la distancia la coincidencia es a `atol=1e-9` sobre la carcaza real |
+| Nada se rompió | ✅ 72 passed, 3 xfailed. Los tests de geometría de MOT-1 pasan sin tocarles una línea |
+| Anda más rápido, medido | ✅ tabla de abajo |
+| El paquete sigue publicable | ✅ `build` + `twine check --strict` PASSED en rueda y sdist |
+
+**3. Verificación reproducible**
+
+```
+$ .venv/Scripts/python -m pytest -q
+72 passed, 3 xfailed in 10.97s        (antes del núcleo: 30.14s)
+```
+
+Kernel contra kernel, y en la misma corrida se verifica que dan lo mismo:
+
+```
+  caso                            celdas     Python      C++      mejora
+  caso base real 750 m             0.47 M     0.76s    0.003s    218.1x  identico
+  caso base real, paso 0.5 m       1.92 M     1.94s    0.009s    217.3x  identico
+  cono 2 km, paso 4 m              0.25 M     8.86s    0.030s    295.8x  identico
+  cono 4 km, paso 2 m              4.00 M   275.40s    0.876s    314.3x  identico
+```
+
+De punta a punta:
+
+```
+  caso                                    bancos   disenar()   antes
+  caso base real 750 m                     13      0.93s       3.69s
+  cono 2 km, 38 bancos                     38      2.45s      16.19s
+  cono 4 km, 58 bancos                     58      6.03s      23.16s
+```
+
+**El kernel rinde 200-300×, el diseño completo 4-6×.** Vale decirlo con todas las letras:
+lo que quedaba fuera de los kernels ya era numpy, y numpy ya corría en C. Quien espere 300×
+en el reloj de pared va a quedar decepcionado, y no porque el núcleo esté mal.
+
+Empaquetado:
+
+```
+$ .venv/Scripts/python -m build
+Successfully built pitpy-0.1.0.dev0.tar.gz and pitpy-0.1.0.dev0-cp312-cp312-win_amd64.whl
+$ .venv/Scripts/python -m twine check --strict dist/*
+PASSED / PASSED
+```
+
+**4. De paso, dos cosas que el núcleo destrabó**
+
+- **El tope de resolución subió de 1000 a 2000 celdas por lado, y hacía falta.** Con 1000, un
+  pit de 4 km quedaba con celdas de 4 m: una berma de 6 m no se resuelve con celda y media, y
+  la línea de cresta traía más ruido que rasgo. Ahora el paso es 2 m —tres celdas por berma— y
+  ese pit se diseña en 17.8 s. Era un problema de calidad geométrica, no de velocidad.
+- **Un error real que encontró el port:** el encadenado de anillos en C++ partía el contorno
+  de un cono en dos. Causa: dos cuadrados vecinos calculan el punto de su lado compartido con
+  las esquinas en orden opuesto (`t` contra `1-t`) y el resultado difiere en el último bit.
+  En Python eso lo tapaba el `round(x, 6)` que parecía cosmético. Ahora está replicado en C++
+  **con el porqué escrito en el encabezado del archivo**, para que nadie lo «limpie».
+
+**5. Archivos**
+
+Nuevos: `CMakeLists.txt`, `include/pitpy/rasterizar.hpp`, `include/pitpy/distancia.hpp`,
+`include/pitpy/contornos.hpp`, `bindings/bindings.cpp`, `tests/test_nucleo.py` (24 tests).
+Modificados: `pyproject.toml` (scikit-build-core + cibuildwheel), `src/pitpy/superficie.py`
+(despacho núcleo/referencia), `src/pitpy/bancos.py` (tope de grilla), `tests/test_bancos.py`,
+`.github/workflows/release.yml` (ruedas por plataforma), `.github/workflows/tests.yml`,
+`README.md`, `CHANGELOG.md`, `docs/ARQUITECTURA.md` (decisión 9), `docs/API_CONTRACTS.md`,
+`docs/APP_REQUESTS.md` (REQ-MOT-001). Borrado: `MANIFEST.in` (era de setuptools).
+
+**6. Impacto en el otro dominio**
+
+**REQ-MOT-001 abierto, prioridad ALTA.** La API no cambió —ni una firma— pero el paquete sí:
+de rueda universal a una rueda por plataforma con un `.pyd` adentro. PyInstaller suele
+detectarlo solo, pero cuando no lo hace el `.exe` se arma sin error y revienta al abrirse con
+`ModuleNotFoundError: pitpy._nucleo`. Le pedí a la App que lo verifique **abriendo la ventana**
+en APP-3, y le di `NUCLEO_COMPILADO` para que sepa si quedó adentro sin esperar a que reviente.
+
+**7. Qué quedó pendiente**
+
+- **La franja angosta sigue disponible y sigue siendo el 130×.** El núcleo bajó la constante;
+  el trabajo por banco sigue siendo O(área de la grilla) cuando debería ser O(perímetro). Si
+  alguna vez se busca el volumen en tiempo real de ESPECIFICACION §8, ahí está el camino.
+- **No hay tests de C++** (VentPy tiene GoogleTest). Hoy la red son los 24 diferenciales desde
+  Python, que prueban el kernel contra su referencia sobre datos reales. Es suficiente
+  mientras los kernels sean tres funciones puras; si el núcleo crece, hace falta gtest.
+- **El trusted publisher de PyPI y el environment `pypi` siguen sin configurar** — es manual,
+  de Miqueas. Y no se publica hasta que cierre MOT-6 y Yhonny valide.
+- Los tres `xfail` siguen igual: MOT-2 (volúmenes) y MOT-4 (rampa). El próximo objetivo del
+  motor no cambió.
+
+---
+
 ## 2026-08-21 — Empaquetado listo para PyPI, al estándar de VentPy
 
 **1. Qué y por qué**

@@ -15,6 +15,13 @@ import numpy as np
 
 from .modelo import Malla
 
+try:
+    from . import _nucleo
+    NUCLEO_COMPILADO = True
+except ImportError:      # instalación sin compilar: se cae a la referencia Python
+    _nucleo = None
+    NUCLEO_COMPILADO = False
+
 
 def _triangulos(caras):
     """Los 3DFACE de RecMin traen 3 o 4 esquinas; acá todo es triángulo."""
@@ -40,37 +47,18 @@ class Superficie:
 
     @classmethod
     def desde_malla(cls, malla: Malla, paso: float) -> "Superficie":
-        tris = list(_triangulos(malla.caras))
-        pts = [p for t in tris for p in t]
-        x0 = min(p[0] for p in pts)
-        y0 = min(p[1] for p in pts)
-        nx = max(1, math.ceil((max(p[0] for p in pts) - x0) / paso))
-        ny = max(1, math.ceil((max(p[1] for p in pts) - y0) / paso))
-        z = np.full((ny, nx), np.nan)
-
-        for t in tris:
-            (ax, ay, az), (bx, by, bz), (cx, cy, cz) = t[0], t[1], t[2]
-            det = (by - cy) * (ax - cx) + (cx - bx) * (ay - cy)
-            if det == 0:
-                continue   # triángulo degenerado en planta: no aporta cota
-            j0 = max(0, int((min(ax, bx, cx) - x0) / paso) - 1)
-            j1 = min(nx - 1, int((max(ax, bx, cx) - x0) / paso) + 1)
-            i0 = max(0, int((min(ay, by, cy) - y0) / paso) - 1)
-            i1 = min(ny - 1, int((max(ay, by, cy) - y0) / paso) + 1)
-            for i in range(i0, i1 + 1):
-                py = y0 + (i + 0.5) * paso
-                for j in range(j0, j1 + 1):
-                    px = x0 + (j + 0.5) * paso
-                    w1 = ((by - cy) * (px - cx) + (cx - bx) * (py - cy)) / det
-                    w2 = ((cy - ay) * (px - cx) + (ax - cx) * (py - cy)) / det
-                    w3 = 1.0 - w1 - w2
-                    if w1 < -1e-9 or w2 < -1e-9 or w3 < -1e-9:
-                        continue
-                    zc = w1 * az + w2 * bz + w3 * cz
-                    # Nos quedamos con la cota más baja: la carcaza es un tazón y
-                    # lo que interesa es el piso, no un techo si lo hubiera.
-                    if math.isnan(z[i, j]) or zc < z[i, j]:
-                        z[i, j] = zc
+        tris = np.array([t[:3] for t in _triangulos(malla.caras)], dtype=np.float64)
+        if tris.size == 0:
+            from . import GeometriaInvalida
+            raise GeometriaInvalida(
+                "la malla no tiene ninguna cara triangulable: no se puede armar "
+                "la superficie. ¿Es un archivo de isolíneas? Usa la carcaza suavizada."
+            )
+        x0 = float(tris[:, :, 0].min())
+        y0 = float(tris[:, :, 1].min())
+        nx = max(1, math.ceil((float(tris[:, :, 0].max()) - x0) / paso))
+        ny = max(1, math.ceil((float(tris[:, :, 1].max()) - y0) / paso))
+        z = _rasterizar(tris, (x0, y0), paso, (ny, nx))
         return cls(z=z, paso=paso, origen=(x0, y0))
 
     def area_m2(self) -> float:
@@ -125,10 +113,28 @@ class Superficie:
 def distancia_hasta(mascara: np.ndarray, paso: float, radio_max: float) -> np.ndarray:
     """Distancia de cada celda hasta la celda `True` más cercana, en metros.
 
-    Se corta en `radio_max` (más allá devuelve inf). Se calcula por fuerza bruta
-    sobre una ventana de ese radio, y no con una transformada de distancia
-    completa, porque acá nunca hace falta más que unos pocos metros: el avance de
-    la cara de banco y el medio ancho del fondo. Exacta dentro de la ventana.
+    Vale 0 dentro de la región y se corta en `radio_max`: más allá, infinito. El
+    corte no es capricho, es lo que le dice a la extracción de contornos dónde
+    termina la línea.
+    """
+    if NUCLEO_COMPILADO:
+        return _distancia_cpp(mascara, paso, radio_max)
+    return _distancia_python(mascara, paso, radio_max)
+
+
+def _distancia_cpp(mascara: np.ndarray, paso: float, radio_max: float) -> np.ndarray:
+    if _nucleo is None:
+        raise RuntimeError("el núcleo C++ no está compilado.")
+    bytes_ = np.ascontiguousarray(mascara, dtype=bool).view(np.uint8)
+    return _nucleo.distancia_hasta(bytes_, paso, radio_max)
+
+
+def _distancia_python(mascara: np.ndarray, paso: float, radio_max: float) -> np.ndarray:
+    """Referencia: fuerza bruta sobre una ventana del radio pedido.
+
+    Exacta dentro de la ventana, pero cuesta O(celdas x offsets) y los offsets
+    crecen con el cuadrado del radio. El núcleo hace lo mismo en O(celdas) con la
+    transformada de distancia; tests/test_nucleo.py exige que coincidan.
     """
     r = int(math.ceil(radio_max / paso))
     d = np.where(mascara, 0.0, np.inf)
@@ -189,6 +195,22 @@ def _corte(v1: float, v2: float, valor: float) -> float:
 def contornos(campo: np.ndarray, valor: float, paso: float,
               origen: tuple[float, float], z: float) -> list[list[tuple]]:
     """Anillos cerrados donde `campo` cruza `valor`. Dentro es `campo <= valor`."""
+    if NUCLEO_COMPILADO:
+        return _contornos_cpp(campo, valor, paso, origen, z)
+    return _contornos_python(campo, valor, paso, origen, z)
+
+
+def _contornos_cpp(campo: np.ndarray, valor: float, paso: float,
+                   origen: tuple[float, float], z: float) -> list[list[tuple]]:
+    if _nucleo is None:
+        raise RuntimeError("el núcleo C++ no está compilado.")
+    campo = np.ascontiguousarray(campo, dtype=np.float64)
+    return _nucleo.contornos(campo, valor, paso, origen[0], origen[1], z)
+
+
+def _contornos_python(campo: np.ndarray, valor: float, paso: float,
+                      origen: tuple[float, float], z: float) -> list[list[tuple]]:
+    """Referencia legible del marching squares. Ver _contornos_cpp."""
     # Un borde de celdas "afuera" alrededor de todo: si la región llega al borde
     # del arreglo, marching squares no ve el cruce y el anillo sale cortado. Le
     # pasó a la silueta de la carcaza, que por definición toca el borde.
@@ -274,3 +296,68 @@ def _area_anillo(anillo: list[tuple]) -> float:
     for (x1, y1, _), (x2, y2, _) in zip(anillo, anillo[1:]):
         a += x1 * y2 - x2 * y1
     return abs(a) / 2.0
+
+
+# --- rasterizado: núcleo C++ y su referencia en Python -------------------------
+#
+# La versión de Python NO es código muerto. Es el oráculo contra el que
+# tests/test_nucleo.py compara la extensión: si el kernel C++ se desvía aunque
+# sea en una celda, el test lo agarra. También es la red si alguien instala el
+# paquete desde el sdist sin compilador.
+
+
+def _rasterizar(tris: np.ndarray, origen: tuple[float, float], paso: float,
+                forma: tuple[int, int]) -> np.ndarray:
+    """Rasteriza por el camino rápido si hay núcleo compilado."""
+    if NUCLEO_COMPILADO:
+        return _rasterizar_cpp(tris, origen, paso, forma)
+    return _rasterizar_python(tris, origen, paso, forma)
+
+
+def _rasterizar_cpp(tris: np.ndarray, origen: tuple[float, float], paso: float,
+                    forma: tuple[int, int]) -> np.ndarray:
+    if _nucleo is None:
+        raise RuntimeError(
+            "el núcleo C++ no está compilado. Reinstala con `pip install -e .` "
+            "(necesita un compilador de C++20) o usa _rasterizar_python."
+        )
+    ny, nx = forma
+    return _nucleo.rasterizar(np.ascontiguousarray(tris, dtype=np.float64),
+                              origen[0], origen[1], paso, ny, nx)
+
+
+def _rasterizar_python(tris: np.ndarray, origen: tuple[float, float], paso: float,
+                       forma: tuple[int, int]) -> np.ndarray:
+    """Referencia legible. Misma fórmula, mismas tolerancias, mismo redondeo.
+
+    Si se toca esto, hay que tocar include/pitpy/rasterizar.hpp igual, o el test
+    diferencial cae. Es a propósito: la que se lee para entender la geometría es
+    esta.
+    """
+    ny, nx = forma
+    x0, y0 = origen
+    z = np.full((ny, nx), np.nan)
+    for t in tris:
+        (ax, ay, az), (bx, by, bz), (cx, cy, cz) = t
+        det = (by - cy) * (ax - cx) + (cx - bx) * (ay - cy)
+        if det == 0:
+            continue   # triángulo degenerado en planta: no aporta cota
+        j0 = max(0, int((min(ax, bx, cx) - x0) / paso) - 1)
+        j1 = min(nx - 1, int((max(ax, bx, cx) - x0) / paso) + 1)
+        i0 = max(0, int((min(ay, by, cy) - y0) / paso) - 1)
+        i1 = min(ny - 1, int((max(ay, by, cy) - y0) / paso) + 1)
+        for i in range(i0, i1 + 1):
+            py = y0 + (i + 0.5) * paso
+            for j in range(j0, j1 + 1):
+                px = x0 + (j + 0.5) * paso
+                w1 = ((by - cy) * (px - cx) + (cx - bx) * (py - cy)) / det
+                w2 = ((cy - ay) * (px - cx) + (ax - cx) * (py - cy)) / det
+                w3 = 1.0 - w1 - w2
+                if w1 < -1e-9 or w2 < -1e-9 or w3 < -1e-9:
+                    continue
+                zc = w1 * az + w2 * bz + w3 * cz
+                # La cota más baja: la carcaza es un tazón y lo que interesa es el
+                # piso, no un techo si lo hubiera.
+                if math.isnan(z[i, j]) or zc < z[i, j]:
+                    z[i, j] = zc
+    return z

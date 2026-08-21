@@ -96,12 +96,26 @@ def test_el_paso_no_se_hace_infinitamente_chico_con_bermas_anchas():
 
     Eso en PitForge no es "lento": es la ventana colgada. La grilla se topea.
     """
-    from pitpy.bancos import paso_por_omision
+    from pitpy.bancos import CELDAS_POR_LADO, paso_por_omision
 
     fino = paso_por_omision(avance_cara=1.0, ancho_berma=6.0, extension=750.0)
 
-    assert fino >= 750.0 / 1000.0
-    assert 750.0 / fino <= 1000
+    assert 750.0 / fino <= CELDAS_POR_LADO
+
+
+def test_el_tope_de_grilla_resuelve_la_berma_de_un_pit_grande():
+    """El tope protege el reloj, pero no puede arruinar la geometría.
+
+    En un pit de 4 km con berma de 6 m, el tope tiene que dejar un paso que
+    resuelva esa berma con al menos tres celdas. Con el tope de 1000 celdas por
+    lado que hubo antes del núcleo C++, el paso salía 4 m: la berma entraba en
+    una celda y media y la línea de cresta traía más ruido que rasgo.
+    """
+    from pitpy.bancos import paso_por_omision
+
+    paso = paso_por_omision(avance_cara=4.04, ancho_berma=6.0, extension=4000.0)
+
+    assert 6.0 / paso >= 3.0
 
 
 def test_el_paso_por_omision_resuelve_el_rasgo_mas_angosto():

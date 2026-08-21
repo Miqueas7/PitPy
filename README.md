@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Miqueas7/PitPy/blob/master/LICENSE)
 
 **Motor open source que convierte una carcaza de pit optimizado en un diseño
-geométrico operativo**: bancos, bermas y rampa.
+geométrico operativo**: bancos, bermas y rampa. Con núcleo de cálculo en C++20.
 
 ```
 carcaza optimizada  ──▶  PitPy  ──▶  pit operativo (DXF)
@@ -33,6 +33,7 @@ reporte de volúmenes.
 | `dxf` — lectura de mallas 3DFACE y polilíneas | ✅ funciona |
 | `taludes` — detección de ángulos desde la carcaza | ✅ funciona |
 | `superficie` — la carcaza como grilla regular, contornos | ✅ funciona |
+| `_nucleo` — kernels de grilla en C++20 (nanobind) | ✅ funciona |
 | `bancos` — generación de banco + berma | ✅ funciona |
 | `volumen` — áreas, volúmenes y sobre-estéril | ⬜ especificado |
 | `dxf` — escritura por capas | ⬜ especificado |
@@ -41,7 +42,24 @@ reporte de volúmenes.
 
 Contra el caso base —una carcaza de 18,703 caras y el diseño que el mismo
 ingeniero hizo a mano— el motor genera los 13 bancos cada 10 m entre las cotas
-230 y 350, con los pies a **2.83 m de mediana** de las líneas dibujadas a mano.
+230 y 350, con los pies a **2.83 m de mediana** de las líneas dibujadas a mano,
+en **0.93 s**. Un pit de 4 km con 58 bancos se diseña en 6 s.
+
+### Rendimiento
+
+Los tres kernels que trabajan sobre la grilla —rasterizar la malla, distancia
+euclídea y marching squares— están en C++20 con [nanobind](https://github.com/wjakob/nanobind).
+Todo lo demás es Python: la geometría de minas se lee y se discute, no se esconde.
+
+| | Python | con núcleo C++ |
+|---|---:|---:|
+| Rasterizar la carcaza del caso base | 0.76 s | 0.003 s |
+| Rasterizar un pit de 4 km a paso 2 m | 275 s | 0.88 s |
+| `disenar()` sobre el caso base | 3.69 s | **0.93 s** |
+
+Cada kernel conserva su implementación de referencia en Python y la suite exige
+que las dos den el mismo resultado celda por celda. Es lo que hace verificable la
+afirmación de arriba.
 
 ## Instalación
 
@@ -53,6 +71,10 @@ cd PitPy
 python -m venv .venv
 .venv/Scripts/python -m pip install -e ".[dev]"    # Linux/macOS: .venv/bin/python
 ```
+
+Compilar desde el repositorio necesita un compilador de C++20 (MSVC, gcc o
+clang) y CMake. Cuando el paquete esté en PyPI, las ruedas ya vienen compiladas y
+no hace falta nada de eso.
 
 Cuando se publique:
 

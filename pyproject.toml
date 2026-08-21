@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=77"]   # >=77: expresión de licencia PEP 639
-build-backend = "setuptools.build_meta"
+requires = ["scikit-build-core>=0.8", "nanobind>=2.0"]
+build-backend = "scikit_build_core.build"
 
 [project]
 name = "pitpy"
@@ -17,6 +17,7 @@ classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Intended Audience :: Science/Research",
     "Operating System :: OS Independent",
+    "Programming Language :: C++",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.10",
@@ -46,11 +47,24 @@ Changelog = "https://github.com/Miqueas7/PitPy/blob/master/CHANGELOG.md"
 [project.scripts]
 pitpy = "pitpy.cli:main"
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.scikit-build]
+minimum-version = "0.8"
+build-dir = "build/{wheel_tag}"
+# Anclados con "/" al inicio: sin eso, un patrón como CMakeLists.txt matchea
+# también dentro de .venv y el sdist se lleva la virtualenv entera. Pasó.
+sdist.include = ["/CHANGELOG.md", "/include/**/*.hpp", "/bindings/*.cpp", "/CMakeLists.txt"]
+sdist.exclude = ["/.venv", "/build", "/dist", "/.pytest_cache", "**/__pycache__"]
+cmake.build-type = "Release"
+cmake.args = ["-DPITPY_BUILD_PYTHON=ON"]
+wheel.packages = ["src/pitpy"]
 
-[tool.setuptools.package-data]
-pitpy = ["py.typed"]
+[tool.cibuildwheel]
+build = "cp310-* cp311-* cp312-* cp313-*"
+skip = "pp* *-musllinux*"
+test-requires = "pytest"
+# Sin el caso base (no se versiona) corren los tests de geometría sintética y los
+# diferenciales del núcleo, que son justamente los que prueban la extensión.
+test-command = "pytest {project}/tests -q -rs -p no:cacheprovider"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

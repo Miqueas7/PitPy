@@ -115,6 +115,36 @@ Y la cresta es `floor(z_max / altura) * altura` = 350, también la del archivo 4
 donde la carcaza no tiene piso. `ancho_fondo_minimo` sigue siendo del usuario, opcional y
 desactivado por omisión.
 
+**9. Los kernels de grilla viven en C++ (nanobind), el resto en Python.**
+(2026-08-21. Decisión de Miqueas, medida después.)
+
+Lo que está en C++ son tres funciones y nada más: rasterizar la malla a la grilla,
+la distancia euclídea hasta una región, y marching squares. Toda la geometría de
+minas —qué es un banco, dónde va el fondo, qué se le avisa al usuario— se queda en
+Python, donde se lee y se discute con el ingeniero.
+
+| | antes | con núcleo |
+|---|---:|---:|
+| Rasterizar la carcaza del caso base | 0.76 s | 0.003 s |
+| Rasterizar un pit de 4 km a paso 2 m | 275 s | 0.88 s |
+| `disenar()` sobre el caso base | 3.69 s | **0.93 s** |
+| `disenar()` sobre un pit de 4 km, 58 bancos | 23.2 s | **6.03 s** |
+
+El kernel puntual rinde 200-300×; de punta a punta el diseño rinde 4-6×, porque lo
+que queda ya era numpy y numpy ya corría en C. Vale decirlo con todas las letras
+para que nadie espere 300× en el reloj de pared.
+
+**La implementación en Python NO se borró.** Cada kernel conserva su gemela legible
+(`_rasterizar_python`, `_distancia_python`, `_contornos_python`) y
+`tests/test_nucleo.py` exige que las dos den el mismo resultado, celda por celda,
+sobre la carcaza real. Sin ese test, «lo reescribí en C++ y anda más rápido» es una
+afirmación sin respaldo: podría andar más rápido y estar mal. Además es la red si
+alguien instala el sdist sin compilador.
+
+Consecuencia de empaquetado: la rueda deja de ser universal y pasa a haber una por
+plataforma (`cibuildwheel`, como VentPy), y PitForge tiene que empacar la extensión
+en su `.exe` (REQ-MOT-001).
+
 ## Lo que NO se decidió todavía
 
 - **Algoritmo de trazado de rampa**: helicoidal simple contra búsqueda con

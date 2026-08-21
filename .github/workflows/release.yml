@@ -5,30 +5,41 @@ on:
     tags: ["v*"]
   workflow_dispatch:
 
-# PitPy es Python puro: no hay ruedas por plataforma que construir, así que una
-# sola rueda universal y el sdist alcanzan. (VentPy necesita cibuildwheel porque
-# su núcleo es C++.)
+# El motor tiene núcleo C++ (nanobind), así que hay una rueda por plataforma. La
+# ABI estable de CPython hace que una rueda sirva para 3.12+ en vez de una por
+# versión, pero el sistema operativo y la arquitectura siguen necesitando la suya.
 jobs:
-  build:
-    name: Construir el paquete
+  ruedas:
+    name: Ruedas en ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pypa/cibuildwheel@v2.21
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ruedas-${{ matrix.os }}
+          path: wheelhouse/*.whl
+
+  sdist:
+    name: Distribución de fuente
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Construir sdist y rueda
-        run: pipx run build
+      - run: pipx run build --sdist
       - name: Revisar los metadatos
         run: pipx run twine check --strict dist/*
       - uses: actions/upload-artifact@v4
         with:
-          name: dist
-          path: dist/*
+          name: sdist
+          path: dist/*.tar.gz
 
   publish:
     name: Publicar en PyPI
-    needs: [build]
+    needs: [ruedas, sdist]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     environment: pypi
@@ -37,6 +48,6 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: dist
           path: dist
+          merge-multiple: true
       - uses: pypa/gh-action-pypi-publish@release/v1
