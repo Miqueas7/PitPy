@@ -164,6 +164,19 @@ def erosionar(mascara: np.ndarray, radio: float, paso: float) -> np.ndarray:
     return ~dilatar(~mascara, radio, paso)
 
 
+def ancho_inscrito(mascara: np.ndarray, paso: float) -> float:
+    """Diámetro del círculo más grande que entra en la región, en metros.
+
+    Es la medida honesta del ancho de un fondo irregular: el ancho de la bahía más
+    angosta no dice nada si el piso es una lengua larga, y el área tampoco.
+    """
+    if not mascara.any():
+        return 0.0
+    ny, nx = mascara.shape
+    lejos = max(ny, nx) * paso
+    return 2.0 * float(distancia_hasta(~mascara, paso, lejos)[mascara].max())
+
+
 def cabe_circulo(mascara: np.ndarray, diametro: float, paso: float) -> bool:
     """¿Entra un círculo de ese diámetro dentro de la región?
 

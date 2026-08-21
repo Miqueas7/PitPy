@@ -144,6 +144,11 @@ class Diseno:
     rampa_: Rampa | None = None
     carcaza: Carcaza | None = None
     parametros: Parametros | None = None
+    # Interno, no es parte del contrato: la grilla y las cotas con las que se
+    # construyó el diseño. Se guarda para que el reporte de volúmenes no tenga que
+    # rasterizar la carcaza otra vez, y para que el recálculo por zonas de
+    # ESPECIFICACION 8 sea posible más adelante. Si falta, volumen la reconstruye.
+    construccion_: object = None
 
     def bancos(self) -> list[Banco]:
         return self.bancos_

@@ -3,11 +3,11 @@
 Lo que todavía no existe va marcado xfail de a uno. A medida que se implemente,
 se le quita la marca. NO relajar los números para que pasen: el archivo 4 lo
 diseñó un ingeniero y es la referencia.
+
+Al 2026-08-21 queda un solo xfail: la rampa (MOT-4).
 """
 import pytest
 
-pendiente = pytest.mark.xfail(reason="el motor todavía no está implementado",
-                              raises=NotImplementedError, strict=False)
 
 PARAMETROS_DE_YHONNY = dict(
     altura_banco=10.0,
@@ -26,7 +26,6 @@ def test_genera_trece_bancos(caso_base):
     assert len(d.bancos()) == 13
 
 
-@pendiente
 def test_el_sobre_area_ronda_las_seis_decimas_de_hectarea(caso_base):
     """19.6 ha del diseño contra 19.0 de la carcaza: 0.6 ha de costo geométrico.
 
@@ -46,7 +45,6 @@ def test_la_rampa_respeta_el_radio_de_giro(caso_base):
     assert d.rampa() is not None
 
 
-@pendiente
 def test_el_fondo_angosto_se_avisa_pero_no_se_corrige(caso_base):
     """ESPECIFICACION 7: Yhonny prefiere perder bloques a arrastrar estéril.
 

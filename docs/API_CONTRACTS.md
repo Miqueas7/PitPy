@@ -78,11 +78,26 @@ puede usar hoy contra el motor de verdad, y lo que necesita doble de prueba:
 | `leer_carcaza`, `leer_topografia`, `leer_malla` | ✅ funciona |
 | `detectar_talud` | ✅ funciona |
 | `Carcaza.silueta` | ✅ funciona (nuevo, 2026-08-21 — REQ-APP-001) |
-| `disenar` | 🔨 **parcial**: llega hasta los bancos. No traza rampa ni recorta topografía |
+| `disenar` | 🔨 **parcial**: bancos y volúmenes. No traza rampa ni recorta topografía |
 | `Diseno.bancos()` | ✅ devuelve los bancos con su cresta y su pie |
 | `Diseno.rampa()` | 🔨 devuelve `None` hasta MOT-4 |
-| `Diseno.reporte()` | ⬜ levanta `NotImplementedError` hasta MOT-2 |
+| `Diseno.reporte()` | ✅ funciona (2026-08-21). Sin rampa todavía: ver la nota del sobre-estéril |
 | `Diseno.a_dxf()` | ⬜ levanta `NotImplementedError` hasta MOT-3 |
+
+### El sobre-estéril puede venir NEGATIVO, y no es un error
+
+`sobre_esteril_m3` es `volumen_diseno - volumen_carcaza`. Mientras no exista la rampa
+(MOT-4) ese número es **negativo**: un diseño de bancos queda por encima de la carcaza
+—en la berma de la cota z el piso es z mientras la carcaza sube desde z-6 hasta z—, así
+que se **pierden bloques** en vez de agregarse estéril. En el caso base da −618,000 m³.
+
+Cuando entre la rampa, el número sube y se vuelve positivo. La App **no puede asumir el
+signo**: hay que mostrarlo como viene, y mostrar también `advertencias`, que trae la
+frase que lo explica. Ver REQ-MOT-002.
+
+Mientras `topo` no exista, el volumen se mide **desde el plano de la cresta hacia abajo**.
+Con topografía la referencia pasa a ser el terreno: los dos volúmenes cambian de
+magnitud, no de significado, porque lo que importa es la resta.
 
 **Desde el 2026-08-21 el motor trae un núcleo compilado en C++** (`pitpy._nucleo`).
 La API no cambia en nada — ninguna firma, ningún tipo de retorno—; lo que cambia es

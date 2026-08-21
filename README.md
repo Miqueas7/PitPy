@@ -35,7 +35,7 @@ reporte de volúmenes.
 | `superficie` — la carcaza como grilla regular, contornos | ✅ funciona |
 | `_nucleo` — kernels de grilla en C++20 (nanobind) | ✅ funciona |
 | `bancos` — generación de banco + berma | ✅ funciona |
-| `volumen` — áreas, volúmenes y sobre-estéril | ⬜ especificado |
+| `volumen` — áreas, volúmenes y sobre-estéril | ✅ funciona |
 | `dxf` — escritura por capas | ⬜ especificado |
 | `rampa` — trazado con radio de giro | ⬜ especificado |
 | `topo` — recorte contra topografía | ⬜ especificado |

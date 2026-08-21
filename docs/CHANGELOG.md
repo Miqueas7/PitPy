@@ -5,6 +5,128 @@ verificó, qué quedó pendiente).
 
 ---
 
+## 2026-08-21 — MOT-2: volúmenes y sobre-estéril · REQ-MOT-002
+
+**1. Qué y por qué**
+
+Etapa 2 del ROADMAP. Es el número por el que existe la herramienta: cuánto cuesta,
+en material movido, volver operativa una carcaza. Sin esto no se puede comparar un
+diseño contra otro, que es exactamente lo que hoy no se puede hacer.
+
+**Decisiones:**
+
+- **El volumen se mide desde el plano de la cresta hacia abajo.** Es la única referencia
+  que existe mientras no haya recorte con topografía (MOT-5). Con topografía la
+  referencia pasa a ser el terreno: los dos volúmenes cambian de magnitud, **no de
+  significado**, porque lo que importa es la resta.
+- **`bancos` se partió en `construir()` + `lineas()`.** La grilla, las cotas y el fondo
+  salen de `construir()`; `lineas()` extrae cresta y pie; `superficie_disenada()` arma la
+  cota del diseño celda por celda. `disenar()` guarda esa construcción en el `Diseno`, así
+  que el reporte no rasteriza la carcaza de nuevo: **0.21 s** contra los 1.12 s que cuesta
+  el diseño. Es también lo que hace posible el recálculo por zonas de ESPECIFICACION §8.
+- **El aviso de fondo angosto se emite, el fondo no se toca** (ESPECIFICACION §7). Y si
+  además se pide `forzar_ancho_fondo=True`, se avisa **por escrito que el motor todavía no
+  lo hace**: quedarse callado sería peor que no tener la opción.
+
+**2. Criterio de aceptación → evidencia**
+
+| Criterio (ROADMAP §Etapa 2) | Evidencia |
+|---|---|
+| `area_proyectada_ha()` = 19.0 ha carcaza ±0.1 | ✅ **19.009 ha** — `test_el_area_de_la_carcaza_del_caso_base` |
+| `area_proyectada_ha()` = 19.6 ha pit diseñado ±0.1 | ✅ **19.60 ha** — `test_el_area_del_pit_disenado_del_caso_base` |
+| Recalculable incremental | 🔨 **parcial y honesto**: el cálculo es una suma sobre celdas y la construcción queda guardada, así que actualizar una zona es posible sin rehacer nada. **La API incremental no existe todavía** y sigue como pendiente de contrato |
+| El `Reporte` cuadra campo a campo con `API_CONTRACTS.md` | ✅ los 11 campos se llenan; tabla de abajo |
+
+**3. Verificación reproducible**
+
+```
+$ .venv/Scripts/python -m pytest -q
+83 passed, 1 xfailed in 14.13s
+```
+
+**Queda un solo `xfail` en todo el proyecto: la rampa (MOT-4).** Se quitaron dos que ya
+no correspondían: el del sobre-área y el del aviso de fondo angosto.
+
+Reporte completo sobre el caso base, con `ancho_fondo_minimo=80`:
+
+```
+disenar 1.12s | reporte 0.21s
+  area_carcaza_ha        19.009
+  area_diseno_ha         19.439
+  sobre_area_ha          0.43
+  volumen_carcaza_m3     11275141.8
+  volumen_diseno_m3      10657148.7
+  sobre_esteril_m3       -617993.0
+  bancos                 13
+  cota_fondo             220.0
+  cota_cresta            350.0
+  longitud_rampa_m       0.0
+  advertencias:
+   - El diseño todavía no incluye rampa: el sobre-estéril informado es solo el costo
+     de los bancos y las bermas.
+   - El fondo quedó en 30 m de ancho, por debajo del mínimo de 80 m que pediste, a la
+     cota 220. No se ensanchó: ensanchar el fondo desplaza las paredes finales y
+     arrastra estéril adicional.
+```
+
+Los 30 m del aviso coinciden con el ancho inscrito que había medido a mano en la sección
+de la cota 220 (30.5 m). Y el volumen de un cono sintético de radio 100 y alto 100 da
+1,047,145 m³ contra los 1,047,198 de π·r²·h/3: **0.005 % de error**.
+
+**4. El sobre-estéril da NEGATIVO, y hay que entenderlo antes de leerlo**
+
+−618,000 m³ en el caso base. No es un error de signo: un diseño de bancos queda **por
+encima** de la carcaza —en la berma de la cota z el piso es z mientras la carcaza sube
+desde z−6 hasta z, y en la cara pasa lo mismo—, así que sin rampa **se pierden bloques en
+vez de agregarse estéril**. El desnivel medio esperado es
+`altura × berma / (2 × avance_total)` = 2.99 m; medido, 3.2 m. Cuando entre MOT-4 la rampa
+empuja las paredes y el número sube y cambia de signo.
+
+**Un test que escribí mal, y cómo se corrigió.** Había puesto como cota de cordura
+«el sobre-estéril no puede pasar el 10 % del volumen del pit». Falló por 0.04 %, y al mirar
+por qué apareció todo lo de arriba: la cota era un número inventado por mí, no una
+propiedad de la geometría. Se reemplazó por el desnivel medio teórico, que **sí** se deriva
+de los parámetros y pincha el diseño de verdad.
+
+**5. Sobre el `sobre_area_ha` = 0.43 ha, que ahora pasa el test del caso base**
+
+El test pedía 0.6 ± 0.3 y da 0.43, pero **la composición del número no es la misma que la
+del ingeniero**: el suyo incluye la rampa; el mío sale de que la cresta del banco más alto
+se apoya 4 m por fuera del borde de la carcaza, donde la carcaza ya casi no avanza (medido:
+0.0 m de avance entre las cotas 340 y 350). Es sobre-área real, pero es otra cosa. Cuando
+entre la rampa hay que volver a mirar este número **y su composición**, no solo que pase.
+
+**6. Archivos**
+
+Nuevos: `tests/test_volumen.py` (9 tests). Modificados: `src/pitpy/volumen.py`
+(implementado), `src/pitpy/bancos.py` (`construir`/`lineas`/`superficie_disenada`),
+`src/pitpy/superficie.py` (`ancho_inscrito`), `src/pitpy/modelo.py` (`Diseno.construccion_`,
+interno), `src/pitpy/__init__.py`, `tests/test_caso_base.py` (dos `xfail` menos),
+`docs/API_CONTRACTS.md`, `docs/APP_REQUESTS.md` (REQ-MOT-002), `README.md`, `CHANGELOG.md`.
+
+**7. Impacto en el otro dominio**
+
+**REQ-MOT-002 abierto, prioridad ALTA.** El campo `sobre_esteril_m3` no cambió de tipo ni
+de nombre, pero **puede venir negativo**, y la App lo muestra en el recuadro grande. Un
+formato `+{n:,} m³` mostraría «+-618,000 m³». Le pedí que no asuma el signo y que muestre
+`advertencias`, que hoy siempre trae al menos una. Le sugerí —sin meterme en su UI— que
+cuando es negativo el rótulo correcto no es «sobre-estéril» sino «mineral perdido por las
+bermas».
+
+**8. Qué quedó pendiente**
+
+- **MOT-3, escritura de DXF por capas**, es lo que sigue y es lo que más valor tiene ahora:
+  es el primer momento en que Yhonny puede ver algo y opinar. `superficie_disenada()` ya
+  entrega la cota del diseño en cada celda, que es lo que hay que escribir.
+- **Forzar el ancho mínimo de fondo no está implementado.** Se avisa por escrito cuando se
+  pide. Ensanchar el fondo obliga a rediseñar desde un piso más ancho; no entra en MOT-2.
+- **La API incremental de volumen sigue sin existir** (pendiente de contrato). Lo que se
+  hizo fue no cerrarse la puerta: el cálculo es una suma sobre celdas y la construcción
+  queda guardada en el `Diseno`.
+- El `sobre_area_ha` hay que releerlo después de MOT-4, por lo del punto 5.
+
+---
+
 ## 2026-08-21 — Núcleo C++ (nanobind) para los tres kernels de grilla · REQ-MOT-001
 
 **1. Qué y por qué**

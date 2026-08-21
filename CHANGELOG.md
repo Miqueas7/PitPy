@@ -32,6 +32,13 @@ y el Ing. Yhonny Ruiz valide el diseño generado contra el suyo.
   caso base, a la misma resolución, de 4.59 s a 0.86 s. Cada kernel conserva su gemela en Python como
   referencia verificable y como respaldo si se instala sin compilador.
 
+- `volumen.calcular()` y `Diseno.reporte()`: áreas, volúmenes y sobre-estéril.
+  `area_proyectada_ha()` da 19.01 ha para la carcaza del caso base y 19.60 ha para el
+  pit diseñado, contra los 19.0 y 19.6 medidos a mano. El reporte trae además las
+  advertencias en idioma del oficio, incluida la del fondo más angosto que el mínimo
+  pedido —que se avisa, nunca se corrige en silencio—.
+- `volumen.area_proyectada_ha()` como función pública.
+
 ### Cambiado
 
 - El paquete pasa de rueda universal a **una rueda por plataforma**. Quien instale

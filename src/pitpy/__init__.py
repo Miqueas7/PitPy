@@ -69,9 +69,10 @@ def disenar(carcaza, parametros, topografia=None, progreso=None):
         talud = detectar_talud(carcaza).mediana
 
     avisar("generando bancos", 0.20)
-    from .bancos import generar
-    bancos = generar(carcaza, parametros, talud_global=talud)
+    from .bancos import construir, lineas
+    construccion = construir(carcaza, parametros, talud_global=talud)
+    bancos = lineas(construccion)
     avisar("generando bancos", 1.0)
 
     return Diseno(bancos_=bancos, rampa_=None, carcaza=carcaza,
-                  parametros=parametros)
+                  parametros=parametros, construccion_=construccion)

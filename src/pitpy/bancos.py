@@ -47,27 +47,35 @@ alrededor de 65-70 grados y bermas bajo 5).
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass
+
+import numpy as np
 
 from .modelo import Banco, Carcaza, Parametros
 from .superficie import Superficie, cabe_circulo, distancia_hasta
 from .taludes import cara_banco_desde_global
 
 
-def generar(carcaza: Carcaza, parametros: Parametros,
-            talud_global: float, paso: float | None = None) -> list[Banco]:
-    """Construye los bancos desde la cota de fondo hasta la cresta.
+@dataclass
+class Construccion:
+    """Todo lo que sale de recorrer la carcaza banco por banco.
 
-    Args:
-        carcaza: la carcaza optimizada, ya leída.
-        parametros: altura de banco, ancho de berma, ancho de fondo...
-        talud_global: en grados. Viene de taludes.detectar_talud() o del usuario.
-        paso: tamaño de celda de la grilla, en metros. Por omisión, un cuarto del
-            rasgo más angosto del diseño (ver ARQUITECTURA, decisión 6).
-
-    Returns:
-        Lista de Banco ordenada de la cota más baja a la más alta. La cota de
-        cada banco es la de su CRESTA; el pie está una altura de banco más abajo.
+    Se separa de `generar()` porque `volumen` y, más adelante, la escritura de DXF
+    y el recorte con topografía necesitan la misma grilla. Reconstruirla en cada
+    módulo sería recalcular la carcaza entera tres veces.
     """
+    superficie: Superficie
+    cotas: list[float]
+    fondo: float
+    altura: float
+    avance_cara: float
+    avance_total: float
+    cara: float
+
+
+def construir(carcaza: Carcaza, parametros: Parametros, talud_global: float,
+              paso: float | None = None) -> Construccion:
+    """Prepara la grilla y decide las cotas. No extrae ninguna línea todavía."""
     altura = parametros.altura_banco
     berma = parametros.ancho_berma
     cara = cara_banco_desde_global(altura, talud_global, berma)
@@ -91,21 +99,75 @@ def generar(carcaza: Carcaza, parametros: Parametros,
             f"y no una superficie suelta, o baja la altura de banco."
         )
 
+    return Construccion(
+        superficie=superficie,
+        cotas=cotas_de_banco(fondo + altura, cresta, altura),
+        fondo=fondo, altura=altura, avance_cara=avance_cara,
+        avance_total=avance_total, cara=cara,
+    )
+
+
+def generar(carcaza: Carcaza, parametros: Parametros,
+            talud_global: float, paso: float | None = None) -> list[Banco]:
+    """Construye los bancos desde la cota de fondo hasta la cresta.
+
+    Args:
+        carcaza: la carcaza optimizada, ya leída.
+        parametros: altura de banco, ancho de berma, ancho de fondo...
+        talud_global: en grados. Viene de taludes.detectar_talud() o del usuario.
+        paso: tamaño de celda de la grilla, en metros. Por omisión, un cuarto del
+            rasgo más angosto del diseño (ver ARQUITECTURA, decisión 6).
+
+    Returns:
+        Lista de Banco ordenada de la cota más baja a la más alta. La cota de
+        cada banco es la de su CRESTA; el pie está una altura de banco más abajo.
+    """
+    return lineas(construir(carcaza, parametros, talud_global, paso))
+
+
+def lineas(c: Construccion) -> list[Banco]:
+    """Extrae la cresta y el pie de cada banco de una construcción ya hecha."""
     bancos = []
-    for cota in cotas_de_banco(fondo + altura, cresta, altura):
-        z_pie = cota - altura
-        seccion = superficie.seccion(z_pie)
-        anillos_pie = superficie.contorno(z_pie)
+    for cota in c.cotas:
+        z_pie = cota - c.altura
+        seccion = c.superficie.seccion(z_pie)
+        anillos_pie = c.superficie.contorno(z_pie)
         # La cresta es el pie corrido hacia afuera el avance de la cara: el ángulo
         # de cara es dato geotécnico, la berma es la que absorbe la diferencia.
-        campo = distancia_hasta(seccion, paso, avance_cara * 1.25)
-        anillos_cresta = superficie.contorno_de(campo, avance_cara, cota)
+        campo = distancia_hasta(seccion, c.superficie.paso, c.avance_cara * 1.25)
+        anillos_cresta = c.superficie.contorno_de(campo, c.avance_cara, cota)
         bancos.append(Banco(
             cota=cota,
             pie=anillos_pie[0] if anillos_pie else [],
             cresta=anillos_cresta[0] if anillos_cresta else [],
         ))
     return bancos
+
+
+def superficie_disenada(c: Construccion) -> np.ndarray:
+    """La cota del DISEÑO en cada celda: el tazón escalonado que reemplaza la carcaza.
+
+    Se arma de abajo hacia arriba y cada celda se escribe una sola vez, la primera:
+
+        piso del pit          -> la cota de fondo
+        cara de banco         -> interpola entre el pie y la cresta según la distancia
+        berma                 -> la cota del banco, plana
+
+    NaN donde el diseño no llega. Es lo que `volumen` integra y lo que `topo` va a
+    recortar; también es de donde sale la superficie a escribir en el DXF.
+    """
+    z = np.full(c.superficie.z.shape, np.nan)
+    piso = c.superficie.seccion(c.fondo)
+    z[piso] = c.fondo
+
+    for cota in c.cotas:
+        pie = c.superficie.seccion(cota - c.altura)
+        d = distancia_hasta(pie, c.superficie.paso, c.avance_cara * 1.25)
+        cara = np.isnan(z) & (d <= c.avance_cara)
+        z[cara] = (cota - c.altura) + c.altura * (d[cara] / c.avance_cara)
+        berma = np.isnan(z) & c.superficie.seccion(cota)
+        z[berma] = cota
+    return z
 
 
 CELDAS_POR_LADO = 2000

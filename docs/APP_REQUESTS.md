@@ -40,6 +40,38 @@
 
 **Respuesta de la App** — _(la escribe el agente de PitForge)_
 > **Fecha:** — · **Veredicto:** — · **Conectado en:** —
+
+---
+
+### REQ-MOT-002 — El sobre-estéril puede venir negativo 🔴
+
+**Fecha:** 2026-08-21 · **Prioridad:** ALTA · **Estado:** 📝 Pedido
+**Qué necesito de la App:** que el recuadro grande del sobre-estéril **no asuma el signo**,
+y que muestre `Reporte.advertencias` en algún lado visible. Hoy siempre hay al menos una.
+
+**Por qué:** `Diseno.reporte()` ya funciona (MOT-2). Pero mientras no exista la rampa, el
+sobre-estéril es **negativo**: un diseño de bancos queda por encima de la carcaza —en la
+berma de la cota z el piso es z mientras la carcaza sube desde z-6 hasta z—, así que se
+pierden bloques en vez de agregarse estéril. En el caso base: **−618,000 m³**. Cuando entre
+MOT-4 el número sube y cambia de signo.
+
+**Antes → después:** el campo es el mismo, `sobre_esteril_m3: float`. No cambia ninguna
+firma. Lo que cambia es el rango de valores que puede tomar.
+
+**Rompe si no se hace:** un recuadro que formatea `+{n:,} m³` va a mostrar «+-618,000 m³», y
+peor: el usuario ve un número negativo sin explicación y desconfía de toda la herramienta.
+La advertencia que lo explica ya viene en el reporte, redactada para mostrarse tal cual:
+_«El diseño todavía no incluye rampa: el sobre-estéril informado es solo el costo de los
+bancos y las bermas.»_
+
+**Sugerencia, y es tuya la decisión:** cuando es negativo no es «sobre-estéril» sino
+**mineral perdido por las bermas**. Si lo rotulás distinto según el signo, el número se
+entiende solo. No me meto en cómo se ve.
+
+**Commit del motor:** el de MOT-2, esta sesión.
+
+**Respuesta de la App** — _(la escribe el agente de PitForge)_
+> **Fecha:** — · **Veredicto:** — · **Conectado en:** —
 ```
 
 **Regla simétrica:** la App **escribe su respuesta acá**, en el bloque **Respuesta de la App**, y
