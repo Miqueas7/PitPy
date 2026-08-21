@@ -1,0 +1,75 @@
+name: Tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Los 5 DXF del caso base no se versionan (10 MB, y son del cliente): los tests
+  # que dependen de ellos se SALTAN acá en vez de fallar. Por eso corre con -rs,
+  # para que el resumen muestre cuántos se saltaron: un verde de CI cubre la
+  # geometría sintética, no el caso real. El caso real se corre en la máquina de
+  # desarrollo con PITPY_CASO_BASE apuntando a la carpeta.
+  tests:
+    name: Python ${{ matrix.python }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Instalar
+        run: python -m pip install -e ".[dev]"
+      - name: Ejecutar la suite
+        run: python -m pytest -q -rs
+
+  # numpy 2 cambió reglas de conversión y de tipos. La suite tiene que pasar con
+  # la versión mínima declarada y con la última, o el rango de dependencias que
+  # publica el pyproject es mentira.
+  numpy:
+    name: numpy ${{ matrix.numpy }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        numpy: ["1.24.4", "latest"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Instalar
+        run: |
+          python -m pip install -e ".[dev]"
+          if [ "${{ matrix.numpy }}" = "latest" ]; then
+            python -m pip install -U numpy
+          else
+            python -m pip install "numpy==${{ matrix.numpy }}"
+          fi
+          python -c "import numpy; print('numpy', numpy.__version__)"
+      - name: Ejecutar la suite
+        run: python -m pytest -q -rs
+
+  empaquetado:
+    name: Paquete publicable
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Construir sdist y rueda
+        run: pipx run build
+      - name: Revisar los metadatos que va a ver PyPI
+        run: pipx run twine check --strict dist/*

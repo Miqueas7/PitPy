@@ -1,0 +1,42 @@
+name: Build & publish
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+# PitPy es Python puro: no hay ruedas por plataforma que construir, así que una
+# sola rueda universal y el sdist alcanzan. (VentPy necesita cibuildwheel porque
+# su núcleo es C++.)
+jobs:
+  build:
+    name: Construir el paquete
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Construir sdist y rueda
+        run: pipx run build
+      - name: Revisar los metadatos
+        run: pipx run twine check --strict dist/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/*
+
+  publish:
+    name: Publicar en PyPI
+    needs: [build]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    environment: pypi
+    permissions:
+      id-token: write   # trusted publishing (sin token en secrets)
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@release/v1

@@ -5,6 +5,93 @@ verificó, qué quedó pendiente).
 
 ---
 
+## 2026-08-21 — Empaquetado listo para PyPI, al estándar de VentPy
+
+**1. Qué y por qué**
+
+Miqueas avisó que PitPy se va a publicar en PyPI igual que VentPy. Fui a ver cómo está
+armado VentPy y traje su estándar acá. Es trabajo de infraestructura, no de motor: no
+cambia una línea de geometría.
+
+Lo que se copió de VentPy: metadatos completos en el `pyproject`, licencia como expresión
+PEP 639, `[project.urls]`, badges en el README, registro de cambios público en formato
+Keep a Changelog, workflow de tests y workflow de publicación por **trusted publishing**
+(sin token en secrets, con `environment: pypi`). Lo que **no** se copió: `cibuildwheel` y
+la matriz de ruedas por plataforma — VentPy las necesita porque su núcleo es C++; PitPy es
+Python puro y le alcanza una rueda universal.
+
+**2. Decisión: se levanta el tope `numpy<2`**
+
+El `pyproject` capaba numpy a `<2` con el comentario «hay VPS sin soporte x86-64-v2».
+Verificado hoy: **la misma suite pasa con numpy 1.26.4 y con 2.4.6** (41 passed, 3 xfailed
+en las dos). Un tope superior en una librería publicada obliga a degradar numpy en el
+entorno de quien la instale, y el motivo original es de despliegue, no de la librería: ese
+pin va en el VPS, no en el paquete. Queda `numpy>=1.24`, y el workflow de tests corre la
+suite contra la versión mínima declarada y contra la última, para que el rango publicado no
+sea una promesa sin probar.
+
+**3. Verificación reproducible**
+
+```
+$ .venv/Scripts/python -m build
+Successfully built pitpy-0.1.0.dev0.tar.gz and pitpy-0.1.0.dev0-py3-none-any.whl
+
+$ .venv/Scripts/python -m twine check --strict dist/*
+Checking dist/pitpy-0.1.0.dev0-py3-none-any.whl: PASSED
+Checking dist/pitpy-0.1.0.dev0.tar.gz: PASSED
+```
+
+Instalación limpia de la rueda en un venv vacío, sin el repositorio a la vista:
+
+```
+pitpy 0.1.0.dev0 | numpy 2.5.2
+bancos: 9 | cotas 20.0 .. 100.0
+silueta: 177 puntos
+$ pitpy --help
+usage: pitpy [-h] {inspeccionar,disenar} ...
+```
+
+La rueda lleva `py.typed` y el `LICENSE`; los metadatos salen como
+`Metadata-Version: 2.4` con `License-Expression: MIT`.
+
+El nombre **`pitpy` está libre en PyPI** (`https://pypi.org/pypi/pitpy/json` → 404).
+
+**4. Archivos**
+
+Nuevos: `.github/workflows/tests.yml`, `.github/workflows/release.yml`, `CHANGELOG.md`
+(registro público, distinto de esta bitácora), `MANIFEST.in`, `src/pitpy/py.typed`.
+Modificados: `pyproject.toml`, `README.md` (badges, estado real después de MOT-1,
+instalación).
+
+**5. Commits**
+
+`chore: empaquetado listo para publicar en PyPI`.
+
+**6. Impacto en el otro dominio**
+
+Ninguno en el contrato. Sí importa para PitForge: la rueda incluye `py.typed`, así que el
+editor de la App ve los tipos del motor sin stubs. Y cuando PitPy esté en PyPI, PitForge
+puede depender de una versión publicada en vez de una ruta local — pero eso recién cuando
+salga 0.1.0.
+
+**7. Qué quedó pendiente**
+
+- **Publicar no se puede todavía y no debería:** `disenar()` está a medias (sin rampa, sin
+  topografía, sin reporte). Publicar un paquete cuyo ejemplo del README levanta
+  `NotImplementedError` quema el nombre. La 0.1.0 sale cuando cierre MOT-6 y Yhonny valide.
+- **Falta configurar en GitHub, y es manual:** el *trusted publisher* en PyPI (proyecto
+  `pitpy`, repo `Miqueas7/PitPy`, workflow `release.yml`, environment `pypi`) y el
+  environment `pypi` en el repositorio. Sin eso el workflow de publicación falla al llegar.
+- **El repositorio remoto todavía no existe** (`git remote -v` vacío): los badges y las URLs
+  del `pyproject` apuntan a `github.com/Miqueas7/PitPy`, que hay que crear.
+- VentPy tiene además `CONTRIBUTING.md`, README bilingüe y sitio de documentación
+  (`miqueas.dev/ventpy`). No los inventé acá: son decisión de Miqueas y valen la pena
+  recién cuando el motor esté completo.
+- **Este trabajo no tiene fila en el tablero.** La ronda lo va a marcar como objetivo
+  huérfano. Corresponde que el Orquestador le abra su fila (¿MOT-7, publicación?).
+
+---
+
 ## 2026-08-21 — MOT-1: bancos, y respuesta a REQ-APP-001 y REQ-APP-002
 
 **1. Qué y por qué**

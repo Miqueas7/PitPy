@@ -1,5 +1,9 @@
 # PitPy
 
+[![Tests](https://img.shields.io/github/actions/workflow/status/Miqueas7/PitPy/tests.yml?branch=master&label=tests)](https://github.com/Miqueas7/PitPy/actions/workflows/tests.yml)
+[![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)](https://github.com/Miqueas7/PitPy)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Miqueas7/PitPy/blob/master/LICENSE)
+
 **Motor open source que convierte una carcaza de pit optimizado en un diseño
 geométrico operativo**: bancos, bermas y rampa.
 
@@ -20,21 +24,40 @@ diez alternativas en vez de una.
 
 ## Estado
 
-🚧 **En construcción.** El lector de DXF funciona y está validado contra un caso
-real. El resto del motor está especificado y pendiente de implementar.
+🚧 **En construcción, todavía sin publicar en PyPI.** El motor ya convierte una
+carcaza real en bancos con berma; falta la rampa, el recorte con topografía y el
+reporte de volúmenes.
 
 | Módulo | Estado |
 |---|---|
 | `dxf` — lectura de mallas 3DFACE y polilíneas | ✅ funciona |
-| `taludes` — detección de ángulos desde la carcaza | 🚧 método probado, falta empaquetar |
-| `bancos` — generación de banco + berma | ⬜ especificado |
+| `taludes` — detección de ángulos desde la carcaza | ✅ funciona |
+| `superficie` — la carcaza como grilla regular, contornos | ✅ funciona |
+| `bancos` — generación de banco + berma | ✅ funciona |
+| `volumen` — áreas, volúmenes y sobre-estéril | ⬜ especificado |
+| `dxf` — escritura por capas | ⬜ especificado |
 | `rampa` — trazado con radio de giro | ⬜ especificado |
 | `topo` — recorte contra topografía | ⬜ especificado |
 
+Contra el caso base —una carcaza de 18,703 caras y el diseño que el mismo
+ingeniero hizo a mano— el motor genera los 13 bancos cada 10 m entre las cotas
+230 y 350, con los pies a **2.83 m de mediana** de las líneas dibujadas a mano.
+
 ## Instalación
 
+Todavía no está en PyPI. Mientras tanto, desde el repositorio:
+
 ```bash
-pip install -e ".[dev]"
+git clone https://github.com/Miqueas7/PitPy
+cd PitPy
+python -m venv .venv
+.venv/Scripts/python -m pip install -e ".[dev]"    # Linux/macOS: .venv/bin/python
+```
+
+Cuando se publique:
+
+```bash
+pip install pitpy
 ```
 
 ## Uso previsto
@@ -57,6 +80,11 @@ print(diseno.reporte())                 # volúmenes y sobre-estéril
 diseno.a_dxf("pit_operativo.dxf")
 ```
 
+Lo que ya corre hoy de ese ejemplo es todo menos las dos últimas líneas: los
+bancos salen con su cresta y su pie, el reporte y la escritura del DXF todavía
+levantan `NotImplementedError`. El estado función por función está en
+[docs/API_CONTRACTS.md](docs/API_CONTRACTS.md).
+
 ## Documentación
 
 > **¿Recién llegas al proyecto?** Empieza por
@@ -70,7 +98,8 @@ diseno.a_dxf("pit_operativo.dxf")
 | [docs/CASO_BASE.md](docs/CASO_BASE.md) | El caso real medido, con sus números |
 | [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md) | Cómo está pensado el motor y por qué |
 | [docs/API_CONTRACTS.md](docs/API_CONTRACTS.md) | Lo que PitForge consume — **fuente de verdad** |
-| [docs/CHANGELOG.md](docs/CHANGELOG.md) | Bitácora de sesiones |
+| [CHANGELOG.md](CHANGELOG.md) | Registro público de versiones |
+| [docs/CHANGELOG.md](docs/CHANGELOG.md) | Bitácora de sesiones, con las decisiones y su porqué |
 
 ## Créditos
 
