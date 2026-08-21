@@ -54,6 +54,10 @@ def leer_topografia(ruta: str) -> Malla: ...
 class Carcaza:
     def silueta(self, paso: float = 10.0) -> list[Punto]: ...   # REQ-APP-001
 
+# rampa.py
+def cabe(carcaza: Carcaza, parametros: Parametros,
+         talud_global: float | None = None) -> tuple[bool, str]: ...   # REQ-APP-002
+
 def detectar_talud(carcaza: Carcaza) -> TaludDetectado: ...
 
 def disenar(carcaza: Carcaza,
@@ -78,6 +82,7 @@ puede usar hoy contra el motor de verdad, y lo que necesita doble de prueba:
 | `leer_carcaza`, `leer_topografia`, `leer_malla` | ✅ funciona |
 | `detectar_talud` | ✅ funciona |
 | `Carcaza.silueta` | ✅ funciona (nuevo, 2026-08-21 — REQ-APP-001) |
+| `rampa.cabe` | ✅ funciona (nuevo, 2026-08-21 — REQ-APP-002). El `str` viene siempre |
 | `disenar` | 🔨 **parcial**: bancos, rampa y volúmenes. No recorta topografía |
 | `Diseno.bancos()` | ✅ devuelve los bancos con su cresta y su pie |
 | `Diseno.rampa()` | ✅ funciona (2026-08-21). `Rampa.pendiente` es la **lograda**, no la pedida |

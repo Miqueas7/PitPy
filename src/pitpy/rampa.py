@@ -129,7 +129,10 @@ def trazar(construccion, parametros: Parametros) -> Rampa:
         raise RampaImposible(
             f"el radio de giro de {parametros.radio_giro:.0f} m no entra en este "
             f"pit con ninguna traza: las curvas que impone la pared son más "
-            f"cerradas que eso. Reduce el radio de giro, o baja la altura de banco "
+            f"cerradas que eso. Probá bajar el radio de giro — o, aunque suene al "
+            f"revés, subirlo: con un radio mayor la rampa arranca más arriba, donde "
+            f"el pit es ancho, y necesita menos desarrollo. En el caso base con "
+            f"40 m no entra y con 60 sí. También ayuda bajar la altura de banco, "
             f"para que la pared suba en escalones más chicos."
         )
     eje = mejor
@@ -143,6 +146,82 @@ def trazar(construccion, parametros: Parametros) -> Rampa:
     largo = _largo(eje)
     lograda = (eje[-1][2] - eje[0][2]) / largo if largo > 0 else 0.0
     return Rampa(eje=eje, ancho=parametros.rampa_ancho, pendiente=lograda)
+
+
+def cabe(carcaza, parametros: Parametros,
+         talud_global: float | None = None) -> tuple[bool, str]:
+    """¿Entra la rampa con estos parámetros? Pedido de PitForge (REQ-APP-002).
+
+    Devuelve `(entra, explicación)`. **El texto viene siempre**, también cuando
+    entra: un `str` que a veces está vacío obliga a la interfaz a un `if` que nadie
+    recuerda por qué existe. Se prometió así por escrito en el REQ.
+
+    No estima: **traza la rampa de verdad**, sobre una grilla más gruesa. Es a
+    propósito, y es lo que se contestó en el REQ: una estimación barata —«¿alcanza
+    el perímetro para ganar 10 m al 10 %?»— es fácil de escribir y miente justo en
+    los pits donde importa, los de geometría rara, donde el perímetro alcanza pero
+    el radio de giro no. Un validador que dice «cabe» y después el cálculo falla es
+    peor que no tener validador.
+
+    El costo es el de un diseño en borrador. Medido sobre el caso base: entre 0.06
+    y 0.92 s según los parámetros, contra los 2.0-2.7 s del diseño completo. Sirve
+    para validar cuando el usuario termina de escribir un campo, no en cada tecla.
+
+    Los números del texto son del borrador: del orden correcto, no exactos. Por eso
+    van dichos como aproximados y el texto lo aclara.
+
+    **Que no entre con un radio y sí con uno más grande no es un error.** Medido
+    sobre el caso base: con 40 m no entra y con 60 sí, porque con un radio mayor la
+    rampa arranca más arriba —donde el pit es ancho—, tiene menos desnivel que subir
+    y necesita menos desarrollo. Si la interfaz sugiere algo cuando no cabe, que no
+    dé por sentado que hay que achicar el radio.
+    """
+    from . import PitPyError
+    from .bancos import construir
+
+    if talud_global is None:
+        talud_global = parametros.talud_global or carcaza.talud_detectado()
+
+    ancho, largo = carcaza.extension()
+    paso = max(_paso_de_borrador(max(ancho, largo)),
+               parametros.rampa_ancho / 2.0)
+    try:
+        construccion = construir(carcaza, parametros, talud_global, paso=paso)
+        rampa = trazar(construccion, parametros)
+    except PitPyError as e:
+        # Cualquier error del dominio —rampa imposible, geometría inválida— es una
+        # respuesta válida acá: la App quiere el motivo, no la excepción.
+        return (False, str(e))
+
+    arranque = rampa.eje[0][2]
+    salida = rampa.eje[-1][2]
+    # Los números salen de la grilla gruesa: son del orden correcto, no exactos.
+    # Se dicen como aproximados a propósito. El fondo del borrador puede diferir un
+    # nivel del real (medido: 210 contra 220 en el caso base), así que no se cita.
+    detalles = [
+        f"la rampa cabe: unos {rampa.longitud:.0f} m de desarrollo, saliendo cerca "
+        f"de la cota {salida:.0f}, al {100 * rampa.pendiente:.1f} % aproximadamente"
+    ]
+    if arranque > construccion.fondo + 0.5:
+        detalles.append(
+            f"pero no llegaría hasta el fondo del pit: más abajo de la cota "
+            f"{arranque:.0f} no hay lugar para un radio de "
+            f"{parametros.radio_giro:.0f} m")
+    if rampa.pendiente < parametros.rampa_pendiente - 0.002:
+        detalles.append(
+            f"y quedaría más tendida que el {100 * parametros.rampa_pendiente:.0f} % "
+            f"pedido, porque respetar el radio obliga a alargarla")
+    return (True, ", ".join(detalles) + ". Los valores exactos salen del cálculo.")
+
+
+def _paso_de_borrador(extension: float) -> float:
+    """Celda para la verificación rápida: 300 por lado en vez de 2000.
+
+    Con 300 celdas la pared se resuelve a 2 m en un pit de 600 y a 13 m en uno de
+    4 km — grueso para diseñar, suficiente para decidir si la rampa entra, y unas
+    cuarenta veces más barato.
+    """
+    return extension / 300.0
 
 
 def aplicar(z: np.ndarray, construccion, rampa: Rampa,

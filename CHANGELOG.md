@@ -47,6 +47,10 @@ y el Ing. Yhonny Ruiz valide el diseño generado contra el suyo.
   radio mínimo 26.2 m para 25 pedidos. La rampa **corta** el diseño y retira lo que
   queda arriba al talud global, así que el sobre-estéril pasa a ser positivo.
 - `Parametros.trazar_rampa`, para pedir el diseño de bancos sin rampa.
+- `rampa.cabe(carcaza, parametros)`: dice si la rampa entra antes de calcular el diseño
+  completo, y por qué no cuando no entra. No estima: traza en borrador sobre una grilla
+  gruesa. Coincide con el diseño completo en los seis radios probados sobre el caso base,
+  a 0.06-0.92 s contra 2.0-2.7 s.
 
 ### Cambiado
 

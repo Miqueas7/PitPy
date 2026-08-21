@@ -143,3 +143,47 @@ def test_la_rampa_sale_en_el_dxf_en_su_capa(cono, tmp_path):
     disenar(cono, Parametros(**PARAMETROS)).a_dxf(ruta)
 
     assert "RAMPA" in leer_malla(ruta).capas
+
+
+# --- REQ-APP-002: saber si la rampa cabe ANTES de calcular ---------------------
+
+def test_cabe_dice_que_si_cuando_la_rampa_se_puede_trazar(cono):
+    from pitpy.rampa import cabe
+
+    entra, mensaje = cabe(cono, Parametros(**PARAMETROS))
+
+    assert entra is True
+    assert mensaje, "el texto viene siempre, también cuando cabe"
+
+
+def test_cabe_dice_que_no_y_nombra_el_parametro_a_relajar(cono):
+    """La App muestra este texto tal cual: sin la pista de qué aflojar, el usuario
+    solo sabe que algo falló."""
+    from pitpy.rampa import cabe
+
+    entra, mensaje = cabe(cono, Parametros(**{**PARAMETROS, "radio_giro": 400.0}))
+
+    assert entra is False
+    assert "radio" in mensaje.lower() and "400" in mensaje
+
+
+def test_el_texto_de_cabe_nunca_viene_vacio(cono):
+    """Un `str` que a veces está vacío es una trampa: la interfaz termina con un
+    `if` que nadie recuerda por qué existe. Se prometió por escrito en el REQ."""
+    from pitpy.rampa import cabe
+
+    for radio in (25.0, 400.0):
+        _, mensaje = cabe(cono, Parametros(**{**PARAMETROS, "radio_giro": radio}))
+        assert mensaje.strip()
+
+
+def test_cuando_cabe_dice_que_si_el_diseno_completo_no_falla(cono):
+    """Lo que hace útil a `cabe()` es que no mienta: si dice que sí y después el
+    cálculo revienta con RampaImposible, es peor que no tenerlo."""
+    from pitpy import disenar
+    from pitpy.rampa import cabe
+
+    entra, _ = cabe(cono, Parametros(**PARAMETROS))
+    assert entra is True
+
+    disenar(cono, Parametros(**PARAMETROS))     # no debe levantar RampaImposible

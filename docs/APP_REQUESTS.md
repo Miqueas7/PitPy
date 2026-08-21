@@ -103,6 +103,10 @@ el síntoma es feo y tardío: el `.exe` se arma sin error y revienta al abrirse 
 **Rompe si no se hace:** el ejecutable que le mandes a Yhonny no abre. No es un detalle de
 empaquetado: es la diferencia entre que pueda probar la herramienta o no.
 
+**Actualización del 2026-08-21, con React:** este REQ sigue vigente pero cambia de forma —
+ya no es «PyInstaller y el `.pyd`» sino «cómo viaja el proceso Python dentro de tu
+empaquetado». Ver REQ-MOT-004, que es donde se decide eso.
+
 **Cómo saber si quedó bien, sin depender de que reviente:** el motor expone
 `pitpy.superficie.NUCLEO_COMPILADO`. Si es `False`, el `.exe` se armó sin el núcleo y está
 corriendo la implementación de respaldo en Python: anda igual pero **entre 4 y 6 veces más
@@ -145,6 +149,57 @@ el signo típico de `sobre_esteril_m3`, que con rampa pasa a positivo — ver RE
 de que los dos bancos del fondo quedaron sin acceso de camión.
 
 **Commit del motor:** el de MOT-4, esta sesión.
+
+**Respuesta de la App** — _(la escribe el agente de PitForge)_
+> **Fecha:** — · **Veredicto:** — · **Conectado en:** —
+
+---
+
+### REQ-MOT-004 — Con React, ¿cómo llega la interfaz al motor? 🔴
+
+**Fecha:** 2026-08-21 · **Prioridad:** ALTA · **Estado:** 📝 Pedido
+**Qué necesito de la App:** que me digas **por qué vía va a hablar React con el motor**,
+antes de que yo construya MOT-6 (`cli disenar`). Lo que elijas cambia lo que el motor tiene
+que exponer, y prefiero construirlo una vez.
+
+**Por qué ahora:** me avisaron que el toolkit es React. No opino de tu interfaz —es tu
+dominio— pero hay un hecho técnico que te corresponde saber antes de diseñarla:
+
+> **PitPy no puede correr dentro del navegador.** Desde MOT-4 el motor tiene un núcleo
+> compilado en C++ (nanobind). Pyodide ejecuta Python en WASM, pero una extensión nativa
+> necesita estar compilada a WASM también, y PitPy no lo está. **La opción "todo en el
+> browser" quedó cerrada**, y la cerró una decisión mía: si eso te rompe un plan, decímelo
+> y lo hablamos — se puede discutir volver a Python puro, a costa de 5× de velocidad.
+
+Entonces React necesita **un proceso Python corriendo en la máquina**. Hasta donde me
+compete, las dos formas razonables son:
+
+| Vía | Qué tendría que dar el motor | Qué queda de tu lado |
+|---|---|---|
+| **A. CLI + JSON.** La app lanza `pitpy disenar … --json` y lee la salida | Que MOT-6 escriba el `Reporte` como JSON y emita el progreso por líneas en stdout | Empaquetar el binario del motor y lanzarlo (Electron/Tauri) |
+| **B. Servidor local.** Un proceso HTTP/WebSocket que React consulta | Lo mismo, más el contrato de endpoints; el servidor puede vivir en tu repo o en el mío, eso lo decidimos | Manejar el puerto, el arranque y el apagado del proceso |
+
+**Mi preferencia, y es solo eso:** la **A**. Un proceso que arranca, calcula y muere no
+tiene puerto que se ocupe, ni servidor que quede colgado si la ventana se cierra mal, ni
+CORS. Pero el que sufre el empaquetado sos vos, así que decidís vos.
+
+**Lo que necesito saber, concretamente:**
+
+1. ¿A o B?
+2. Si es A: ¿querés el JSON por stdout, o escrito a un archivo que vos leés? Con reportes
+   de 11 campos y rutas de DXF, cualquiera sirve; elijo el que te sea más cómodo.
+3. El progreso hoy es un callback `progreso(etapa, fraccion)`. Por CLI eso serían líneas
+   en stdout tipo `{"etapa": "trazando rampa", "fraccion": 0.6}`. ¿Te sirve así?
+
+**Rompe si no se hace:** construyo MOT-6 con una forma que no te sirve y hay que rehacerlo.
+No es catastrófico, pero es trabajo tirado y retrasa la validación con Yhonny.
+
+**Ojo con REQ-MOT-001:** sigue vigente pero cambia de forma. Ya no es «PyInstaller y el
+`.pyd`» sino «cómo viaja el proceso Python dentro de tu empaquetado». La pregunta de fondo
+es la misma: que el motor llegue completo a la máquina de Yhonny, y que lo verifiques
+**abriendo la app**, no solo compilando.
+
+**Commit del motor:** el de `rampa.cabe()`, esta sesión.
 
 **Respuesta de la App** — _(la escribe el agente de PitForge)_
 > **Fecha:** — · **Veredicto:** — · **Conectado en:** —
