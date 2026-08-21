@@ -115,6 +115,42 @@ lento**, y eso en la ventana se nota. Vale la pena que lo chequees al arrancar.
 
 ---
 
+### REQ-MOT-003 — La rampa ya existe: tres cosas que cambian para la pantalla 🟡
+
+**Fecha:** 2026-08-21 · **Prioridad:** MEDIA · **Estado:** 📝 Pedido
+**Qué necesito de la App:** que al mostrar la rampa no repita el dato que el usuario
+escribió, sino el que el motor logró; y que el formulario ofrezca el diseño sin rampa.
+
+**Por qué:** MOT-4 cerró. `Diseno.rampa()` ya devuelve una rampa de verdad, con su eje en
+3D, y eso trae tres consecuencias para la interfaz:
+
+1. **`Rampa.pendiente` es la pendiente LOGRADA, no la pedida.** Cuando respetar el radio de
+   giro obliga a alargar la rampa, el desnivel se reparte sobre más metros y queda más
+   tendida: en el caso base se pidió 10 % y se logró 9.6 %. Es correcto —la pedida es un
+   máximo, no un objetivo— pero si la pantalla muestra el valor del formulario en vez del
+   valor del reporte, le está mintiendo al usuario. Va con advertencia que lo explica.
+2. **`Parametros.trazar_rampa: bool = True` es nuevo.** En `False`, `disenar()` devuelve el
+   diseño de bancos sin rampa. Es la primera etapa del flujo de ESPECIFICACION §8 y sirve
+   para algo muy concreto: **la resta de los dos reportes es lo que cuesta la rampa**. Si
+   te parece que merece una casilla en el formulario, es tuya la decisión.
+3. **Hay dos advertencias nuevas** y las dos importan al usuario: hasta qué cota baja la
+   rampa (en el caso base para en la 230, no en el fondo 220, porque más abajo el pit es
+   demasiado angosto para el radio pedido), y si la pendiente quedó más tendida.
+
+**Antes → después:** ninguna firma cambia. Lo que cambia es el VALOR de
+`Rampa.pendiente` (antes era eco del parámetro porque no había rampa; ahora es medido) y
+el signo típico de `sobre_esteril_m3`, que con rampa pasa a positivo — ver REQ-MOT-002.
+
+**Rompe si no se hace:** el usuario ve «10 %» en una rampa que tiene 9.6 %, y no se entera
+de que los dos bancos del fondo quedaron sin acceso de camión.
+
+**Commit del motor:** el de MOT-4, esta sesión.
+
+**Respuesta de la App** — _(la escribe el agente de PitForge)_
+> **Fecha:** — · **Veredicto:** — · **Conectado en:** —
+
+---
+
 ## COMPLETADOS
 
 _(vacío)_

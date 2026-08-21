@@ -72,7 +72,14 @@ def disenar(carcaza, parametros, topografia=None, progreso=None):
     from .bancos import construir, lineas
     construccion = construir(carcaza, parametros, talud_global=talud)
     bancos = lineas(construccion)
-    avisar("generando bancos", 1.0)
 
-    return Diseno(bancos_=bancos, rampa_=None, carcaza=carcaza,
+    rampa = None
+    if parametros.trazar_rampa:
+        avisar("trazando rampa", 0.60)
+        from .rampa import trazar
+        rampa = trazar(construccion, parametros)
+        construccion.rampa = rampa
+    avisar("trazando rampa", 1.0)
+
+    return Diseno(bancos_=bancos, rampa_=rampa, carcaza=carcaza,
                   parametros=parametros, construccion_=construccion)

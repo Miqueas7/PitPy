@@ -5,6 +5,119 @@ verificó, qué quedó pendiente).
 
 ---
 
+## 2026-08-21 — MOT-4: la rampa, con radio de giro respetado · REQ-MOT-003
+
+**1. Qué y por qué**
+
+Etapa 4 del ROADMAP, y la razón de ser del proyecto: **RecMin no admite el radio de giro
+como parámetro** —hoy se resuelve a ojo estirando la banqueta— así que si PitPy lo respeta
+de verdad, hace algo que la herramienta que ellos usan no hace. Por eso acá el radio se
+mide, no se declara: el test recorre el eje terna por terna y exige el mínimo.
+
+**No se hizo búsqueda de rutas**, como manda el ROADMAP. Elegir el sector de salida es v2.
+
+**2. Criterio de aceptación → evidencia**
+
+| Criterio (ROADMAP §Etapa 4) | Evidencia sobre el caso base |
+|---|---|
+| Que la rampa exista | ✅ 1,256 m de desarrollo, 251 puntos, cotas 230 → 350 |
+| Que respete el radio | ✅ **radio mínimo 26.2 m** para 25 pedidos, medido terna por terna |
+| Que el sobre-área quede cerca de 0.6 ha | ✅ **0.409 ha** (el test del caso base pedía 0.6 ± 0.3, y ahora pasa con la misma composición que el número del ingeniero: bancos, bermas y rampa) |
+
+**Los dos `xfail` que quedaban en el proyecto se levantaron. No queda ninguno: 100 passed.**
+
+**3. Verificación reproducible**
+
+```
+$ .venv/Scripts/python -m pytest -q
+100 passed in 29.61s
+```
+
+```
+disenar 2.1s | etapas [('detectando talud', 0.05), ('generando bancos', 0.2),
+                       ('trazando rampa', 0.6), ('trazando rampa', 1.0)]
+RAMPA: 251 pts | 1256 m | cotas 230..350 | radio min 26.2 m | pendiente lograda 9.60 %
+REPORTE:
+  area_carcaza_ha      19.009        volumen_carcaza_m3   11275141.8
+  area_diseno_ha       19.418        volumen_diseno_m3    11639852.1
+  sobre_area_ha        0.409         sobre_esteril_m3     364710.4
+  bancos 13 | cota_fondo 220 | cota_cresta 350 | longitud_rampa_m 1256.1
+ADVERTENCIAS:
+  - La rampa baja hasta la cota 230, no hasta el fondo (220): más abajo el pit es
+    demasiado angosto para un radio de giro de 25 m. Los últimos bancos quedan sin
+    acceso directo de camión.
+  - La rampa quedó al 9.6 %, más tendida que el 10 % pedido: respetar el radio de
+    giro obligó a alargarla.
+  - El fondo quedó en 30 m de ancho, por debajo del mínimo de 80 m que pediste…
+DXF: 599 KB | capas {'PIE': 3698, 'CRESTA': 3797, 'RAMPA': 253} | polilineas 27
+```
+
+**El sobre-estéril se dio vuelta, que es la confirmación que importa:** −618,000 m³ sin
+rampa (bancos que dejan bloques) → **+364,710 m³ con rampa** (paredes empujadas hacia
+afuera). Es exactamente lo que se predijo al cerrar MOT-2.
+
+**4. Tres intentos de trazado, y por qué quedó el tercero**
+
+| Trazado | Resultado medido |
+|---|---|
+| Rayos desde el centro hacia la pared | Anda en un cono. En el pit real, entre azimuts vecinos el rayo cruza a radios muy distintos: **saltos de 265 m** en el eje |
+| Caminar el contorno de cada nivel | Continuo, pero al cambiar de anillo mete un paso lateral de un banco y el radio se desploma |
+| **Interpolar entre el contorno de abajo y el de arriba según la cota** | La rampa se despega de la pared de a poco mientras sube. El que quedó |
+
+Y dos hallazgos del suavizado, los dos con número:
+
+- **Promedio móvil solo no alcanza:** los puntos se amontonan en las curvas, aparecen
+  tríos casi degenerados y el radio medido **empeora** por más pasadas que se hagan. Se
+  estanca en 17 m. Con re-espaciado uniforme en cada pasada llega a 25 m en 160 pasadas.
+- **El acortamiento por suavizado no es proporcional:** trazar al 8.6 % dio 818 m de rampa
+  suavizada y trazar al 6.5 % dio 1,219 m. Por eso no sirve ajustar la pendiente una vez:
+  se prueba una escalera de trazas y se toma la primera que llega a la salida.
+
+**5. Decisiones que hay que conocer antes de leer un reporte**
+
+- **La rampa no baja hasta el fondo.** Arranca en el nivel más bajo donde el radio entra de
+  verdad: el criterio es que en la sección quepa un círculo de diámetro `2 × radio_giro`,
+  el mismo criterio con que se elige el fondo pero con otro diámetro. Forzarla hasta el
+  piso da curvas de 6 m de radio, que en el papel parecen rampa y en la mina no las toma
+  ningún camión. **No es una limitación del programa: es lo que hace Yhonny**
+  (ESPECIFICACION §7, textual sobre la excavadora de brazo largo).
+- **`Rampa.pendiente` es la LOGRADA, no la pedida.** La pedida es un máximo; cuando
+  respetar el radio obliga a alargar la rampa, queda más tendida (9.6 % contra 10 %). Se
+  informa con advertencia. Un reporte que dijera 10 % estaría repitiendo el formulario.
+- **La rampa corta el diseño, no se dibuja encima:** hunde la plataforma y retira al talud
+  global todo lo que queda arriba, o quedaría en voladizo. Ese retiro es el que empuja las
+  paredes y de donde sale la mayor parte del sobre-estéril.
+
+**6. Archivos**
+
+Nuevos: `tests/test_rampa.py` (9 tests). Modificados: `src/pitpy/rampa.py` (implementado),
+`src/pitpy/bancos.py` (`superficie_de_bancos` separada, la construcción guarda la rampa),
+`src/pitpy/modelo.py` (`Parametros.trazar_rampa`, doc de `Rampa.pendiente`),
+`src/pitpy/volumen.py` (dos advertencias nuevas), `src/pitpy/__init__.py`,
+`tests/test_caso_base.py` (dos `xfail` menos), `tests/test_volumen.py` y
+`tests/test_dxf_escritura.py` (sus fixtures piden explícitamente el diseño sin rampa),
+`docs/ROADMAP.md`, `docs/ARQUITECTURA.md` (decisión 11), `docs/API_CONTRACTS.md`,
+`docs/APP_REQUESTS.md` (REQ-MOT-003), `README.md`, `CHANGELOG.md`.
+
+**7. Impacto en el otro dominio**
+
+**REQ-MOT-003 abierto.** Ninguna firma cambia, pero sí el VALOR de `Rampa.pendiente` (antes
+eco del parámetro, ahora medido), hay un parámetro nuevo (`trazar_rampa`) y dos
+advertencias nuevas. Si la pantalla muestra la pendiente del formulario en vez de la del
+reporte, le miente al usuario.
+
+**8. Qué quedó pendiente**
+
+- **MOT-5, topografía**, es lo único que falta del motor antes de cerrar el flujo con
+  MOT-6. Hoy el diseño se corta en la cresta y arriba no hay nada.
+- **El sector de salida de la rampa no se elige.** Es v2 y es, en palabras de Yhonny, «un
+  boom». La estructura está lista: `trazar()` recibe los anillos y arranca en el primero.
+- **La malla de superficie del DXF** sigue pendiente de MOT-3, con su porqué medido.
+- **VAL-1**: con MOT-4 cerrado ya hay algo que mostrarle a Yhonny —un diseño con bancos,
+  bermas y rampa, y un número de sobre-estéril— aunque falte el recorte con topografía.
+
+---
+
 ## 2026-08-21 — MOT-3: escritura del diseño a DXF (líneas), y una corrección de MOT-2
 
 **1. Qué y por qué**

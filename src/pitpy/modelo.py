@@ -81,6 +81,7 @@ class Parametros:
     ancho_fondo_minimo: float | None = None  # None => sin restricción
     forzar_ancho_fondo: bool = False         # ver ESPECIFICACION §7
     bancos_sobre_topografia: int = 2
+    trazar_rampa: bool = True                # False => diseño de bancos, sin rampa
 
     def __post_init__(self) -> None:
         if self.altura_banco <= 0:
@@ -110,6 +111,7 @@ class Banco:
 
 @dataclass
 class Rampa:
+    """La rampa trazada. `pendiente` es la LOGRADA, que nunca supera la pedida."""
     eje: list[Punto] = field(default_factory=list)
     ancho: float = 0.0
     pendiente: float = 0.0

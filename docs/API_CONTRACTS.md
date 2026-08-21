@@ -78,11 +78,18 @@ puede usar hoy contra el motor de verdad, y lo que necesita doble de prueba:
 | `leer_carcaza`, `leer_topografia`, `leer_malla` | ✅ funciona |
 | `detectar_talud` | ✅ funciona |
 | `Carcaza.silueta` | ✅ funciona (nuevo, 2026-08-21 — REQ-APP-001) |
-| `disenar` | 🔨 **parcial**: bancos y volúmenes. No traza rampa ni recorta topografía |
+| `disenar` | 🔨 **parcial**: bancos, rampa y volúmenes. No recorta topografía |
 | `Diseno.bancos()` | ✅ devuelve los bancos con su cresta y su pie |
-| `Diseno.rampa()` | 🔨 devuelve `None` hasta MOT-4 |
+| `Diseno.rampa()` | ✅ funciona (2026-08-21). `Rampa.pendiente` es la **lograda**, no la pedida |
 | `Diseno.reporte()` | ✅ funciona (2026-08-21). Sin rampa todavía: ver la nota del sobre-estéril |
 | `Diseno.a_dxf()` | 🔨 **parcial** (2026-08-21): escribe las líneas `CRESTA` y `PIE`. Las capas de superficie `BERMA` y `TALUD` todavía no |
+
+### `Parametros.trazar_rampa: bool = True`
+
+Campo nuevo (2026-08-21). En `False`, `disenar()` devuelve el diseño de bancos sin
+rampa. Es la primera etapa del flujo que describe ESPECIFICACION §8 —suavizar la
+carcaza sin rampa y recién después decidir por dónde sube— y sirve para comparar
+cuánto cuesta la rampa: es la resta de los dos reportes.
 
 ### El sobre-estéril puede venir NEGATIVO, y no es un error
 
@@ -91,9 +98,10 @@ puede usar hoy contra el motor de verdad, y lo que necesita doble de prueba:
 —en la berma de la cota z el piso es z mientras la carcaza sube desde z-6 hasta z—, así
 que se **pierden bloques** en vez de agregarse estéril. En el caso base da −618,000 m³.
 
-Cuando entre la rampa, el número sube y se vuelve positivo. La App **no puede asumir el
-signo**: hay que mostrarlo como viene, y mostrar también `advertencias`, que trae la
-frase que lo explica. Ver REQ-MOT-002.
+**Con rampa el número es positivo** (caso base: +364,710 m³) y **sin rampa es negativo**
+(−618,000 m³), y las dos cosas son ciertas: los bancos solos dejan bloques sin minar, y la
+rampa empuja las paredes. Como `trazar_rampa` es del usuario, **la App no puede asumir el
+signo**: hay que mostrarlo como viene, y mostrar también `advertencias`. Ver REQ-MOT-002.
 
 Mientras `topo` no exista, el volumen se mide **desde el plano de la cresta hacia abajo**.
 Con topografía la referencia pasa a ser el terreno: los dos volúmenes cambian de

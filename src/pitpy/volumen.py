@@ -88,6 +88,20 @@ def _advertencias(diseno: Diseno, construccion) -> list[str]:
     avisos = []
     parametros = diseno.parametros
 
+    if diseno.rampa_ is not None and diseno.rampa_.eje:
+        arranque = diseno.rampa_.eje[0][2]
+        if arranque > construccion.fondo + 0.5:
+            avisos.append(
+                f"La rampa baja hasta la cota {arranque:.0f}, no hasta el fondo "
+                f"({construccion.fondo:.0f}): más abajo el pit es demasiado angosto "
+                f"para un radio de giro de {parametros.radio_giro:.0f} m. Los "
+                f"últimos bancos quedan sin acceso directo de camión.")
+        if diseno.rampa_.pendiente < parametros.rampa_pendiente - 0.002:
+            avisos.append(
+                f"La rampa quedó al {100 * diseno.rampa_.pendiente:.1f} %, más "
+                f"tendida que el {100 * parametros.rampa_pendiente:.0f} % pedido: "
+                f"respetar el radio de giro obligó a alargarla.")
+
     if diseno.rampa_ is None:
         avisos.append(
             "El diseño todavía no incluye rampa: el sobre-estéril informado es solo "

@@ -18,8 +18,14 @@ PARAMETROS = dict(altura_banco=10.0, ancho_berma=6.0, talud_global=45.0,
 
 @pytest.fixture(scope="module")
 def diseno_del_cono():
+    """Sin rampa a propósito: estos tests son sobre las líneas de banco.
+
+    La rampa en el DXF tiene su propio test, en test_rampa.py, porque su línea
+    cruza cotas y no cumple —ni tiene por qué— las reglas de una línea de banco.
+    """
     m = malla_cono(radio=110.0, altura=110.0, lados=360)
-    return disenar(Carcaza(caras=m.caras), Parametros(**PARAMETROS))
+    return disenar(Carcaza(caras=m.caras),
+                   Parametros(**{**PARAMETROS, "trazar_rampa": False}))
 
 
 @pytest.fixture(scope="module")

@@ -163,6 +163,26 @@ que además saca la ondulación de tamaño de celda que traen los contornos de l
 grilla: una línea de diseño con dientes de medio metro no es lo que dibuja un
 ingeniero.
 
+**11. La rampa se traza interpolando entre los contornos del diseño** (2026-08-21, MOT-4).
+
+Se probaron dos formas y la primera se descartó con números:
+
+| Trazado | Qué pasó |
+|---|---|
+| Rayos desde el centro del pit hacia la pared | Anda en un cono. En el caso base, entre dos azimuts vecinos el rayo cruza la pared a radios muy distintos: **saltos de 265 m** en el eje |
+| Caminar el contorno de cada nivel | Continuo, pero cambiar de anillo mete un paso lateral del ancho de un banco y el radio de giro se desploma |
+| **Interpolar entre el contorno de abajo y el de arriba según la cota** | La rampa se aleja de la pared de a poco mientras sube. Es el que quedó |
+
+El radio se consigue suavizando: promedio móvil **más re-espaciado uniforme** en cada
+pasada. El re-espaciado no es cosmético — sin él los puntos se amontonan en las curvas y
+el radio medido empeora por más que se suavice: se estanca en 17 m contra los 25 que se
+alcanzan con re-espaciado. Suavizar es, físicamente, comerse la esquina: la rampa se mete
+en la pared para poder girar, que es lo mismo que hace el humano estirando la banqueta.
+
+Y como el suavizado acorta el desarrollo de forma **no proporcional** (trazar al 8.6 % dio
+818 m y trazar al 6.5 % dio 1,219 m), no sirve un solo ajuste de pendiente: se prueba una
+escalera de trazas y se toma la primera que alcanza la salida.
+
 ## Lo que NO se decidió todavía
 
 - **Algoritmo de trazado de rampa**: helicoidal simple contra búsqueda con

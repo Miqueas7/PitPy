@@ -37,7 +37,7 @@ reporte de volúmenes.
 | `bancos` — generación de banco + berma | ✅ funciona |
 | `volumen` — áreas, volúmenes y sobre-estéril | ✅ funciona |
 | `dxf` — escritura por capas | 🔨 líneas sí, malla de superficie no |
-| `rampa` — trazado con radio de giro | ⬜ especificado |
+| `rampa` — trazado con radio de giro | ✅ funciona |
 | `topo` — recorte contra topografía | ⬜ especificado |
 
 Contra el caso base —una carcaza de 18,703 caras y el diseño que el mismo

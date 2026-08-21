@@ -57,9 +57,15 @@ def test_el_area_del_pit_disenado_del_caso_base(caso_base):
 
 @pytest.fixture
 def diseno_del_cono():
+    """Sin rampa: estos tests miden lo que cuestan los bancos y las bermas solos.
+
+    Con rampa el signo del sobre-estéril se da vuelta, y eso tiene su propio test
+    en test_rampa.py.
+    """
     from pitpy import disenar
     m = malla_cono(radio=110.0, altura=110.0, lados=360)
-    return disenar(Carcaza(caras=m.caras), Parametros(**PARAMETROS))
+    return disenar(Carcaza(caras=m.caras),
+                   Parametros(**{**PARAMETROS, "trazar_rampa": False}))
 
 
 def test_el_reporte_trae_los_bancos_y_las_cotas_del_diseno(diseno_del_cono):

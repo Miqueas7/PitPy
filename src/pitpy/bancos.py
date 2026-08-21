@@ -71,6 +71,7 @@ class Construccion:
     avance_cara: float
     avance_total: float
     cara: float
+    rampa: object = None       # la traza `rampa.trazar()`; None hasta entonces
 
 
 def construir(carcaza: Carcaza, parametros: Parametros, talud_global: float,
@@ -145,7 +146,16 @@ def lineas(c: Construccion) -> list[Banco]:
 
 
 def superficie_disenada(c: Construccion) -> np.ndarray:
-    """La cota del DISEÑO en cada celda: el tazón escalonado que reemplaza la carcaza.
+    """La cota del diseño en cada celda, con la rampa ya cortada si la hay."""
+    z = superficie_de_bancos(c)
+    if c.rampa is not None:
+        from .rampa import aplicar
+        z = aplicar(z, c, c.rampa, math.degrees(math.atan(c.altura / c.avance_total)))
+    return z
+
+
+def superficie_de_bancos(c: Construccion) -> np.ndarray:
+    """La cota del diseño SIN rampa: el tazón escalonado que reemplaza la carcaza.
 
     Se arma de abajo hacia arriba y cada celda se escribe una sola vez, la primera:
 

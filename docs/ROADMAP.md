@@ -123,6 +123,23 @@ verdad, hace algo que la herramienta que ellos usan no hace.
 
 Que la rampa exista, respete el radio, y que el sobre-área quede cerca de 0.6 ha.
 
+**Estado al 2026-08-21: cumplido.** Sobre el caso base: 1,256 m de desarrollo entre
+las cotas 230 y 350, radio mínimo **26.2 m** para 25 pedidos, pendiente lograda
+9.6 %, y **sobre-área 0.409 ha** contra las 0.6 del ingeniero (que incluye su
+propio trazado, distinto del nuestro). El sobre-estéril pasa de −618,000 m³ sin
+rampa a **+364,710 m³** con ella.
+
+**Lo que quedó fuera, dicho de frente:**
+
+- **La rampa no baja hasta el fondo.** Arranca en el nivel más bajo donde el radio
+  de giro entra de verdad — en el caso base, la cota 230 y no la 220 — y se avisa
+  por escrito. No es una limitación: es lo que hace Yhonny (ESPECIFICACION §7).
+- **El sector de salida no se elige**, arranca en el primer anillo. Elegirlo es v2
+  y es, en palabras suyas, «un boom».
+- **La pendiente lograda puede ser más tendida que la pedida** (9.6 % contra 10 %):
+  respetar el radio obliga a alargar la rampa. La pedida es un máximo, así que
+  entregar menos es correcto — pero se informa, no se maquilla.
+
 ---
 
 ## Etapa 5 — `topo`

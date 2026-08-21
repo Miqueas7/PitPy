@@ -26,8 +26,6 @@ def test_genera_trece_bancos(caso_base):
     assert len(d.bancos()) == 13
 
 
-@pytest.mark.xfail(reason="MOT-4: sin rampa el diseño solo cuesta 0.21 ha; el resto "
-                          "de las 0.6 ha las pone la rampa", strict=False)
 def test_el_sobre_area_ronda_las_seis_decimas_de_hectarea(caso_base):
     """19.6 ha del diseño contra 19.0 de la carcaza: 0.6 ha de costo geométrico.
 
@@ -44,12 +42,15 @@ def test_el_sobre_area_ronda_las_seis_decimas_de_hectarea(caso_base):
     assert d.reporte().sobre_area_ha == pytest.approx(0.6, abs=0.3)
 
 
-@pytest.mark.xfail(reason="MOT-4: la rampa todavía no se traza", strict=False)
 def test_la_rampa_respeta_el_radio_de_giro(caso_base):
     """RecMin no lo controla. Si PitPy tampoco, no aporta nada nuevo."""
     from pitpy import Parametros, disenar, leer_carcaza
+    from tests.test_rampa import radio_de_giro
+
     d = disenar(leer_carcaza(caso_base["suavizada"]), Parametros(**PARAMETROS_DE_YHONNY))
+
     assert d.rampa() is not None
+    assert radio_de_giro(d.rampa().eje) >= PARAMETROS_DE_YHONNY["radio_giro"]
 
 
 def test_el_fondo_angosto_se_avisa_pero_no_se_corrige(caso_base):

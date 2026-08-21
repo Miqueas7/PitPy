@@ -42,7 +42,17 @@ y el Ing. Yhonny Ruiz valide el diseño generado contra el suyo.
   separadas y con color. Las capas de superficie (`BERMA`, `TALUD`) quedan para más
   adelante; el porqué está en el ROADMAP.
 
+- `rampa.trazar()`: rampa helicoidal sobre la pared, con radio de giro respetado de
+  verdad —lo que RecMin no hace—. En el caso base: 1,256 m entre las cotas 230 y 350,
+  radio mínimo 26.2 m para 25 pedidos. La rampa **corta** el diseño y retira lo que
+  queda arriba al talud global, así que el sobre-estéril pasa a ser positivo.
+- `Parametros.trazar_rampa`, para pedir el diseño de bancos sin rampa.
+
 ### Cambiado
+
+- `Rampa.pendiente` informa la pendiente **lograda**, no la pedida. Suelen coincidir;
+  cuando respetar el radio obliga a alargar la rampa, la lograda es más tendida y el
+  reporte lo dice en una advertencia.
 
 - El paquete pasa de rueda universal a **una rueda por plataforma**. Quien instale
   desde el sdist necesita un compilador de C++20 y CMake.
