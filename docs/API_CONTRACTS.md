@@ -82,7 +82,7 @@ puede usar hoy contra el motor de verdad, y lo que necesita doble de prueba:
 | `Diseno.bancos()` | ✅ devuelve los bancos con su cresta y su pie |
 | `Diseno.rampa()` | 🔨 devuelve `None` hasta MOT-4 |
 | `Diseno.reporte()` | ✅ funciona (2026-08-21). Sin rampa todavía: ver la nota del sobre-estéril |
-| `Diseno.a_dxf()` | ⬜ levanta `NotImplementedError` hasta MOT-3 |
+| `Diseno.a_dxf()` | 🔨 **parcial** (2026-08-21): escribe las líneas `CRESTA` y `PIE`. Las capas de superficie `BERMA` y `TALUD` todavía no |
 
 ### El sobre-estéril puede venir NEGATIVO, y no es un error
 

@@ -165,8 +165,13 @@ def superficie_disenada(c: Construccion) -> np.ndarray:
         d = distancia_hasta(pie, c.superficie.paso, c.avance_cara * 1.25)
         cara = np.isnan(z) & (d <= c.avance_cara)
         z[cara] = (cota - c.altura) + c.altura * (d[cara] / c.avance_cara)
-        berma = np.isnan(z) & c.superficie.seccion(cota)
-        z[berma] = cota
+        if cota != c.cotas[-1]:
+            # La berma de la cota z la deja el banco de ARRIBA al ser minado, y va
+            # desde la cresta de este banco hasta el pie del siguiente. Sobre el
+            # banco más alto no se minó nada, así que ahí no hay berma: el diseño
+            # termina en su cresta y lo que sigue es terreno, que es asunto de topo.
+            berma = np.isnan(z) & c.superficie.seccion(cota)
+            z[berma] = cota
     return z
 
 

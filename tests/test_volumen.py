@@ -101,14 +101,16 @@ def test_sin_rampa_el_diseno_pierde_bloques_en_vez_de_agregar_esteril(diseno_del
 
         altura * berma / (2 * avance_total) = 10 * 6 / (2 * 10.04) = 2.99 m
 
-    Medido: 3.35 m. La diferencia son el piso del pit —donde el desnivel es mayor
-    que en cualquier banco— y la discretización de la grilla.
+    Se reparte sobre la huella de la CARCAZA, no sobre la del diseño: parte de lo
+    que se deja sin minar es el anillo del borde, entre la cresta del banco más
+    alto y donde llegaba la carcaza, adonde el diseño directamente no llega.
+    Medido: 3.35 m en el cono, 3.25 m en el caso base.
     """
     r = diseno_del_cono.reporte()
 
     assert r.sobre_esteril_m3 < 0, "sin rampa no se puede agregar estéril"
 
-    desnivel_medio = -r.sobre_esteril_m3 / (r.area_diseno_ha * 1e4)
+    desnivel_medio = -r.sobre_esteril_m3 / (r.area_carcaza_ha * 1e4)
     teorico = 10.0 * 6.0 / (2 * 10.0 / math.tan(math.radians(45.0)))
     assert desnivel_medio == pytest.approx(teorico, rel=0.25)
 

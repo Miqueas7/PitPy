@@ -5,6 +5,110 @@ verificó, qué quedó pendiente).
 
 ---
 
+## 2026-08-21 — MOT-3: escritura del diseño a DXF (líneas), y una corrección de MOT-2
+
+**1. Qué y por qué**
+
+Etapa 3 del ROADMAP: que Yhonny pueda ver algo. Se escribe el diseño a DXF con
+`CRESTA` y `PIE` en capas separadas y con color, una polilínea 3D cerrada por banco.
+
+**Y una corrección del motor que salió al escribir el archivo:** `superficie_disenada()`
+pintaba una berma sobre el banco más alto. Esa berma **no existe**: la berma de la cota z
+la deja el banco de arriba al ser minado, y sobre el banco más alto no se minó nada — ahí
+el diseño termina en su cresta y lo que sigue es terreno, que es asunto de MOT-5. La
+detectó el test que compara el área de lo escrito contra el área del reporte.
+
+**Qué cambia con la corrección** (números del caso base):
+
+| | antes | corregido |
+|---|---:|---:|
+| `area_diseno_ha` | 19.439 | **19.216** |
+| `sobre_area_ha` | 0.43 | **0.207** |
+| `volumen_diseno_m3` | 10,657,148 | 10,657,148 (sin cambio: esa berma estaba en el plano de referencia) |
+
+**Consecuencia honesta: `test_el_sobre_area_ronda_las_seis_decimas_de_hectarea` vuelve a
+`xfail`.** Lo había desmarcado en MOT-2 porque pasaba, pero pasaba en parte gracias a esa
+berma fantasma, que inflaba la huella 0.22 ha. Sin ella, el sobre-área de los bancos solos
+es 0.21 ha; el resto de las 0.6 ha las pone la rampa (MOT-4). En el reporte de MOT-2 había
+quedado anotado que **la composición del número no era la del ingeniero** y que había que
+releerlo; esto es exactamente eso, un día antes de lo previsto.
+
+**2. Criterio de aceptación → evidencia**
+
+| Criterio (ROADMAP §Etapa 3) | Evidencia |
+|---|---|
+| Capas separadas y distinguibles | ✅ `CRESTA` (rojo) y `PIE` (verde), con su tabla de capas y color. `RAMPA` solo cuando exista |
+| Que Miqueas lo abra en un CAD | ⏳ **pendiente de Miqueas** — el archivo está en `ejemplos/caso_base_disenado.dxf` |
+| Que se lo mande a Yhonny | ⏳ pendiente, después de lo anterior |
+| Capas `BERMA` y `TALUD` | ⛔ **no entregadas.** Ver punto 4 |
+
+**3. Verificación reproducible**
+
+```
+$ .venv/Scripts/python -m pytest -q
+89 passed, 2 xfailed in 11.87s
+```
+
+Los dos `xfail` son MOT-4 (rampa y sobre-área). El archivo del caso base:
+
+```
+escrito en 0.03s -> 579 KB
+  polilineas: 26 (13 pies + 13 crestas)
+  capas: {'PIE': 3698, 'CRESTA': 3797}
+  cotas: [220, 230, 240, 250, 260, 270, 280, 290, 300, 310, 320, 330, 340, 350]
+  vertices por linea: 41..452
+  area de la linea mas grande: 19.217 ha | reporte 19.216 ha
+```
+
+Las 14 cotas son **exactamente** las del diseño del ingeniero (archivo 4: caras planas en
+220, 230, …, 350). Y el archivo se relee con nuestro propio lector: si no lo leyera el
+nuestro, ningún CAD lo leería mejor.
+
+**4. La malla de superficie NO se entregó, y esto es lo que hay que saber**
+
+El plan era escribir también `BERMA` y `TALUD` como malla de 3DFACE. Se intentó, se midió,
+y se descartó **con el archivo generado en la mano**:
+
+| Intento | Resultado sobre el caso base |
+|---|---|
+| Rasterizar la grilla a celdas de 5 m | La celda se come el escalón (berma 6 m + cara 4 m). Histograma sin la firma bimodal: 23 % entre 65-70° contra el 46 % del archivo 4 |
+| Tejer cinta entre pie y cresta, avanzando el anillo atrasado | **27.3 ha de caras** para un diseño de 19.2 ha |
+| Ídem, remuestreando los dos anillos a paso uniforme | **23.4 ha de caras**, y caras de 85° que en el diseño no existen |
+
+4 ha de caras montadas unas sobre otras se ven mal en el CAD, y un archivo que se ve mal es
+peor que no tenerlo: le haría dudar a Yhonny de todo el diseño, no solo de la malla. El
+arreglo de verdad es emparejar los anillos **por cercanía con restricción de monotonía**, o
+triangular la superficie completa desde la grilla. Queda anotado en el ROADMAP con los
+números, para que nadie lo dé por trivial.
+
+**Las líneas alcanzan para el objetivo de la etapa**: superponerlas sobre el diseño del
+ingeniero y comparar. Es además como se intercambian los diseños de pit en la práctica.
+
+**5. Archivos**
+
+Nuevos: `tests/test_dxf_escritura.py` (7 tests), `ejemplos/caso_base_disenado.dxf` (no
+versionado: el `.gitignore` excluye `*.dxf`). Modificados: `src/pitpy/dxf.py` (escritura),
+`src/pitpy/bancos.py` (la berma fantasma), `tests/test_caso_base.py`, `tests/test_volumen.py`
+(el desnivel medio se reparte sobre la huella de la carcaza, no la del diseño: parte de lo
+que se deja sin minar es el anillo del borde adonde el diseño no llega), `docs/ROADMAP.md`,
+`docs/ARQUITECTURA.md` (decisión 10), `docs/API_CONTRACTS.md`, `README.md`, `CHANGELOG.md`.
+
+**6. Impacto en el otro dominio**
+
+Ninguno nuevo. `Diseno.a_dxf()` pasa de levantar `NotImplementedError` a funcionar, lo que
+**destraba el botón de exportar de PitForge**; queda anotado en la tabla de estado del
+contrato. No hace falta REQ: no se rompió ninguna firma.
+
+**7. Qué quedó pendiente**
+
+- **Que Miqueas abra `ejemplos/caso_base_disenado.dxf` en un CAD** y confirme que las capas
+  se distinguen. Es el criterio de aceptación y no lo puedo cerrar yo.
+- La malla de superficie (`BERMA`, `TALUD`), con el porqué medido en el ROADMAP.
+- **MOT-4, la rampa**, es lo que sigue, y es la ventaja competitiva: RecMin no admite el
+  radio de giro como parámetro. Los dos `xfail` que quedan son suyos.
+
+---
+
 ## 2026-08-21 — MOT-2: volúmenes y sobre-estéril · REQ-MOT-002
 
 **1. Qué y por qué**

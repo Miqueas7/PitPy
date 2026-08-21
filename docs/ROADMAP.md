@@ -88,6 +88,22 @@ Escribir en capas separadas: `CRESTA`, `PIE`, `BERMA`, `RAMPA`, `TALUD`.
 Que Miqueas lo abra en un CAD y las capas se distingan. Y que se lo mande a
 Yhonny para que lo compare con el suyo.
 
+**Estado al 2026-08-21:** se escriben `CRESTA` y `PIE`, una polilínea 3D cerrada
+por banco, cada una con su color. Falta la malla de superficie (`BERMA`, `TALUD`).
+
+**Por qué falta, para que nadie la dé por trivial:** tejer una cinta de triángulos
+entre el pie y la cresta de cada banco parece directo y no lo es. Los dos anillos
+salen de una grilla, tienen distinta cantidad de vértices y distinta forma local, y
+al parearlos por longitud de arco la cinta se corta en diagonal. Medido sobre el
+caso base: la malla sumaba **23.4 ha de caras para un diseño de 19.2 ha** —4 ha de
+caras montadas unas sobre otras— y aparecían caras de 85° que en el diseño no
+existen. Se probaron dos pareos (avance del atrasado, y remuestreo uniforme) y
+ninguno alcanzó. Hacerlo bien pide emparejar por cercanía con restricción de
+monotonía, o triangular la superficie completa desde la grilla.
+
+Las líneas alcanzan para el objetivo de la etapa —superponerlas sobre el diseño del
+ingeniero y comparar— y es además como se intercambian los diseños en la práctica.
+
 ---
 
 ## Etapa 4 — `rampa`

@@ -26,11 +26,18 @@ def test_genera_trece_bancos(caso_base):
     assert len(d.bancos()) == 13
 
 
+@pytest.mark.xfail(reason="MOT-4: sin rampa el diseño solo cuesta 0.21 ha; el resto "
+                          "de las 0.6 ha las pone la rampa", strict=False)
 def test_el_sobre_area_ronda_las_seis_decimas_de_hectarea(caso_base):
     """19.6 ha del diseño contra 19.0 de la carcaza: 0.6 ha de costo geométrico.
 
     Es EL número de la herramienta. Tolerancia amplia (0.3 ha) porque el trazado
     de rampa puede diferir del que hizo Yhonny a mano y seguir siendo válido.
+
+    Al 2026-08-21 da 0.21 ha, que es lo que cuestan los bancos y las bermas solos.
+    Estuvo brevemente en verde durante MOT-2, pero por un error de modelado —el
+    diseño pintaba una berma sobre el banco más alto, que no existe— que inflaba
+    la huella 0.22 ha. Corregido en MOT-3, vuelve a xfail hasta que haya rampa.
     """
     from pitpy import Parametros, disenar, leer_carcaza
     d = disenar(leer_carcaza(caso_base["suavizada"]), Parametros(**PARAMETROS_DE_YHONNY))

@@ -154,6 +154,15 @@ Consecuencia de empaquetado: la rueda deja de ser universal y pasa a haber una p
 plataforma (`cibuildwheel`, como VentPy), y PitForge tiene que empacar la extensión
 en su `.exe` (REQ-MOT-001).
 
+**10. El diseño se entrega como LÍNEAS, no como malla** (2026-08-21, MOT-3).
+
+`CRESTA` y `PIE`, una polilínea 3D cerrada por banco, con su color. La malla de
+superficie quedó afuera de v1 por un motivo medido, no por falta de tiempo: ver
+`ROADMAP.md` §Etapa 3. Los vértices se remuestrean a un paso fijo (5 m por omisión),
+que además saca la ondulación de tamaño de celda que traen los contornos de la
+grilla: una línea de diseño con dientes de medio metro no es lo que dibuja un
+ingeniero.
+
 ## Lo que NO se decidió todavía
 
 - **Algoritmo de trazado de rampa**: helicoidal simple contra búsqueda con

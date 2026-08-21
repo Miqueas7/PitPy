@@ -38,6 +38,9 @@ y el Ing. Yhonny Ruiz valide el diseño generado contra el suyo.
   advertencias en idioma del oficio, incluida la del fondo más angosto que el mínimo
   pedido —que se avisa, nunca se corrige en silencio—.
 - `volumen.area_proyectada_ha()` como función pública.
+- `Diseno.a_dxf()`: escribe el diseño a DXF con las líneas de cresta y pie en capas
+  separadas y con color. Las capas de superficie (`BERMA`, `TALUD`) quedan para más
+  adelante; el porqué está en el ROADMAP.
 
 ### Cambiado
 

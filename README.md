@@ -36,7 +36,7 @@ reporte de volúmenes.
 | `_nucleo` — kernels de grilla en C++20 (nanobind) | ✅ funciona |
 | `bancos` — generación de banco + berma | ✅ funciona |
 | `volumen` — áreas, volúmenes y sobre-estéril | ✅ funciona |
-| `dxf` — escritura por capas | ⬜ especificado |
+| `dxf` — escritura por capas | 🔨 líneas sí, malla de superficie no |
 | `rampa` — trazado con radio de giro | ⬜ especificado |
 | `topo` — recorte contra topografía | ⬜ especificado |
 
