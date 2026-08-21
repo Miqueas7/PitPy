@@ -12,3 +12,10 @@ htmlcov/
 !tests/fixtures/*.dxf
 .env
 .DS_Store
+
+# Tooling de agentes / dev — nunca al repo (leccion R-1: el tooling de impeccable
+# entro a produccion en otro proyecto porque el riesgo estaba anotado, no bloqueado)
+.claude/
+.impeccable/
+.github/skills/
+.github/hooks/
