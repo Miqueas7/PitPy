@@ -51,6 +51,9 @@ class Reporte:
 def leer_carcaza(ruta: str) -> Carcaza: ...
 def leer_topografia(ruta: str) -> Malla: ...
 
+class Carcaza:
+    def silueta(self, paso: float = 10.0) -> list[Punto]: ...   # REQ-APP-001
+
 def detectar_talud(carcaza: Carcaza) -> TaludDetectado: ...
 
 def disenar(carcaza: Carcaza,
@@ -64,6 +67,26 @@ class Diseno:
     def bancos(self) -> list[Banco]: ...
     def rampa(self) -> Rampa | None: ...
 ```
+
+## Estado de implementación — 2026-08-21
+
+El contrato describe la v1 completa; el motor todavía no llegó a toda. Lo que la App
+puede usar hoy contra el motor de verdad, y lo que necesita doble de prueba:
+
+| Función | Estado |
+|---|---|
+| `leer_carcaza`, `leer_topografia`, `leer_malla` | ✅ funciona |
+| `detectar_talud` | ✅ funciona |
+| `Carcaza.silueta` | ✅ funciona (nuevo, 2026-08-21 — REQ-APP-001) |
+| `disenar` | 🔨 **parcial**: llega hasta los bancos. No traza rampa ni recorta topografía |
+| `Diseno.bancos()` | ✅ devuelve los bancos con su cresta y su pie |
+| `Diseno.rampa()` | 🔨 devuelve `None` hasta MOT-4 |
+| `Diseno.reporte()` | ⬜ levanta `NotImplementedError` hasta MOT-2 |
+| `Diseno.a_dxf()` | ⬜ levanta `NotImplementedError` hasta MOT-3 |
+
+De las etapas de `progreso()` hoy se emiten solo `"detectando talud"` y
+`"generando bancos"`. Las otras tres aparecen cuando exista lo que reportan; la
+fracción siempre termina en 1.0.
 
 ## Errores
 

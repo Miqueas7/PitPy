@@ -46,28 +46,118 @@ alrededor de 65-70 grados y bermas bajo 5).
 """
 from __future__ import annotations
 
+import math
+
 from .modelo import Banco, Carcaza, Parametros
+from .superficie import Superficie, cabe_circulo, distancia_hasta
+from .taludes import cara_banco_desde_global
 
 
 def generar(carcaza: Carcaza, parametros: Parametros,
-            talud_global: float) -> list[Banco]:
+            talud_global: float, paso: float | None = None) -> list[Banco]:
     """Construye los bancos desde la cota de fondo hasta la cresta.
 
     Args:
         carcaza: la carcaza optimizada, ya leída.
         parametros: altura de banco, ancho de berma, ancho de fondo...
         talud_global: en grados. Viene de taludes.detectar_talud() o del usuario.
+        paso: tamaño de celda de la grilla, en metros. Por omisión, un cuarto del
+            rasgo más angosto del diseño (ver ARQUITECTURA, decisión 6).
 
     Returns:
-        Lista de Banco ordenada de la cota más baja a la más alta.
+        Lista de Banco ordenada de la cota más baja a la más alta. La cota de
+        cada banco es la de su CRESTA; el pie está una altura de banco más abajo.
     """
-    raise NotImplementedError("Ver el docstring del módulo.")
+    altura = parametros.altura_banco
+    berma = parametros.ancho_berma
+    cara = cara_banco_desde_global(altura, talud_global, berma)
+    avance_cara = altura / math.tan(math.radians(cara))
+    avance_total = altura / math.tan(math.radians(talud_global))
+    if paso is None:
+        ancho, largo = carcaza.extension()
+        paso = paso_por_omision(avance_cara, berma, max(ancho, largo))
+
+    superficie = Superficie.desde_malla(carcaza, paso)
+    z_min, z_max = superficie.rango_z()
+    cresta = math.floor(z_max / altura) * altura
+
+    fondo = _cota_de_fondo(superficie, cresta, altura, avance_total, z_min, paso)
+    if fondo is None or fondo >= cresta:
+        from . import GeometriaInvalida
+        raise GeometriaInvalida(
+            f"la carcaza no da para un solo banco de {altura} m: entre la cota "
+            f"{z_min:.1f} y la {z_max:.1f} no hay ningún nivel donde quepa un piso "
+            f"de {avance_total:.1f} m de ancho. Revisa que sea una carcaza de pit "
+            f"y no una superficie suelta, o baja la altura de banco."
+        )
+
+    bancos = []
+    for cota in cotas_de_banco(fondo + altura, cresta, altura):
+        z_pie = cota - altura
+        seccion = superficie.seccion(z_pie)
+        anillos_pie = superficie.contorno(z_pie)
+        # La cresta es el pie corrido hacia afuera el avance de la cara: el ángulo
+        # de cara es dato geotécnico, la berma es la que absorbe la diferencia.
+        campo = distancia_hasta(seccion, paso, avance_cara * 1.25)
+        anillos_cresta = superficie.contorno_de(campo, avance_cara, cota)
+        bancos.append(Banco(
+            cota=cota,
+            pie=anillos_pie[0] if anillos_pie else [],
+            cresta=anillos_cresta[0] if anillos_cresta else [],
+        ))
+    return bancos
+
+
+CELDAS_POR_LADO = 1000
+"""Tope de resolución de la grilla.
+
+No sale de la geometría sino del reloj: a 1000 celdas por lado un pit de 750 m se
+resuelve a 0.75 m, y con ese paso el error de área medido en el caso base ya es
+menor que el ±0.1 ha que pide el ROADMAP. Más fino solo agrega segundos.
+"""
+
+
+def paso_por_omision(avance_cara: float, ancho_berma: float,
+                     extension: float) -> float:
+    """Tamaño de celda: cuatro celdas a lo ancho del rasgo más angosto.
+
+    Con el tope de CELDAS_POR_LADO, porque el rasgo más angosto puede ser
+    diminuto: banco de 7 m con berma de 6 m deja un avance de cara de 1 m, y sin
+    tope la grilla de un pit chico se va a nueve millones de celdas.
+    """
+    ideal = min(avance_cara, ancho_berma) / 4.0
+    return max(ideal, extension / CELDAS_POR_LADO)
+
+
+def _cota_de_fondo(superficie: Superficie, cresta: float, altura: float,
+                   avance_total: float, z_min: float, paso: float) -> float | None:
+    """El nivel más bajo donde la carcaza todavía tiene piso, no punta de tazón.
+
+    Baja de a un banco desde la cresta mientras la sección admita un círculo del
+    ancho de un banco completo. Ver ARQUITECTURA, decisión 8: no es ensanchar el
+    fondo (eso lo prohíbe ESPECIFICACION 7), es no inventar un banco donde la
+    carcaza no da.
+    """
+    fondo = None
+    cota = cresta
+    while cota > z_min - altura:
+        seccion = superficie.seccion(cota)
+        if not seccion.any() or not cabe_circulo(seccion, avance_total, paso):
+            break
+        fondo = cota
+        cota -= altura
+    return fondo
 
 
 def cotas_de_banco(z_fondo: float, z_cresta: float, altura: float) -> list[float]:
-    """Cotas de banco entre el fondo y la cresta.
+    """Cotas de banco entre el fondo y la cresta, de a `altura`.
 
-    Separado para poder testearlo sin geometría. En el caso base:
+    `z_fondo` es la cota del banco más bajo (la berma que se apoya sobre el piso
+    del pit), no la del piso. Separado para poder testearlo sin geometría. En el
+    caso base:
         cotas_de_banco(230, 350, 10) -> 13 cotas
     """
-    raise NotImplementedError
+    if altura <= 0:
+        raise ValueError("la altura de banco debe ser positiva")
+    n = int(math.floor((z_cresta - z_fondo) / altura + 1e-9)) + 1
+    return [z_fondo + k * altura for k in range(max(0, n))]

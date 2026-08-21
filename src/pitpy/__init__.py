@@ -51,8 +51,27 @@ def disenar(carcaza, parametros, topografia=None, progreso=None):
 
     Raises:
         GeometriaInvalida, RampaImposible
+
+    ESTADO: v0.1.0-dev. Hoy llega hasta los bancos (MOT-1). La rampa (MOT-4), el
+    recorte con topografía (MOT-5) y el reporte de volúmenes (MOT-2) todavía no
+    están: `Diseno.rampa()` devuelve None y `Diseno.reporte()` levanta
+    NotImplementedError. Las etapas de progreso que faltan tampoco se emiten.
     """
-    raise NotImplementedError(
-        "Pendiente. Orden sugerido: taludes -> bancos -> rampa -> topo -> volumen. "
-        "Ver docs/ARQUITECTURA.md"
-    )
+    from .modelo import Diseno
+
+    def avisar(etapa, fraccion):
+        if progreso is not None:
+            progreso(etapa, fraccion)
+
+    avisar("detectando talud", 0.05)
+    talud = parametros.talud_global
+    if talud is None:
+        talud = detectar_talud(carcaza).mediana
+
+    avisar("generando bancos", 0.20)
+    from .bancos import generar
+    bancos = generar(carcaza, parametros, talud_global=talud)
+    avisar("generando bancos", 1.0)
+
+    return Diseno(bancos_=bancos, rampa_=None, carcaza=carcaza,
+                  parametros=parametros)

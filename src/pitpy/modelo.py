@@ -49,6 +49,20 @@ class Carcaza(Malla):
         from .dxf import leer_carcaza
         return leer_carcaza(ruta)
 
+    def silueta(self, paso: float = 10.0) -> list["Punto"]:
+        """Borde de la carcaza en planta, para una vista previa liviana.
+
+        Pedido de PitForge (REQ-APP-001): dibujar la malla completa es demasiado
+        lento para una miniatura. Devuelve UN anillo cerrado —la carcaza es un
+        tazón, no tiene islas— con la cota real de la carcaza en cada punto.
+
+        `paso` es el tamaño de celda en metros: más chico, más fiel y más lento.
+        No sirve para calcular áreas; para eso está el Reporte.
+        """
+        from .superficie import Superficie
+        anillos = Superficie.desde_malla(self, paso).contorno_de_la_huella()
+        return anillos[0] if anillos else []
+
     def talud_detectado(self) -> float:
         """Atajo: mediana del ángulo de las caras, en grados."""
         from .taludes import detectar_talud
