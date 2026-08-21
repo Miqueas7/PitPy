@@ -43,7 +43,7 @@ reporte de volúmenes.
 Contra el caso base —una carcaza de 18,703 caras y el diseño que el mismo
 ingeniero hizo a mano— el motor genera los 13 bancos cada 10 m entre las cotas
 230 y 350, con los pies a **2.83 m de mediana** de las líneas dibujadas a mano,
-en **0.93 s**. Un pit de 4 km con 58 bancos se diseña en 6 s.
+en **0.86 s**. Un pit de 4 km con 58 bancos, a celdas de 2 m, tarda 18 s.
 
 ### Rendimiento
 
@@ -55,7 +55,7 @@ Todo lo demás es Python: la geometría de minas se lee y se discute, no se esco
 |---|---:|---:|
 | Rasterizar la carcaza del caso base | 0.76 s | 0.003 s |
 | Rasterizar un pit de 4 km a paso 2 m | 275 s | 0.88 s |
-| `disenar()` sobre el caso base | 3.69 s | **0.93 s** |
+| `disenar()` sobre el caso base | 4.59 s | **0.86 s** |
 
 Cada kernel conserva su implementación de referencia en Python y la suite exige
 que las dos den el mismo resultado celda por celda. Es lo que hace verificable la

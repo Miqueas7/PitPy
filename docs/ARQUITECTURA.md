@@ -123,16 +123,25 @@ la distancia euclídea hasta una región, y marching squares. Toda la geometría
 minas —qué es un banco, dónde va el fondo, qué se le avisa al usuario— se queda en
 Python, donde se lee y se discute con el ingeniero.
 
-| | antes | con núcleo |
+| | referencia Python | con núcleo |
 |---|---:|---:|
-| Rasterizar la carcaza del caso base | 0.76 s | 0.003 s |
-| Rasterizar un pit de 4 km a paso 2 m | 275 s | 0.88 s |
-| `disenar()` sobre el caso base | 3.69 s | **0.93 s** |
-| `disenar()` sobre un pit de 4 km, 58 bancos | 23.2 s | **6.03 s** |
+| Rasterizar la carcaza del caso base (0.47 M celdas) | 0.76 s | 0.003 s |
+| Rasterizar un pit de 4 km a paso 2 m (4 M celdas) | 275 s | 0.88 s |
+| `disenar()` sobre el caso base, misma resolución | 4.59 s | **0.86 s** |
 
-El kernel puntual rinde 200-300×; de punta a punta el diseño rinde 4-6×, porque lo
+El kernel puntual rinde 200-300×; de punta a punta el diseño rinde **5×**, porque lo
 que queda ya era numpy y numpy ya corría en C. Vale decirlo con todas las letras
 para que nadie espere 300× en el reloj de pared.
+
+A la resolución por omisión de hoy, con el tope en 2000 celdas por lado:
+
+| Pit | Paso | Celdas | Bancos | `disenar()` |
+|---|---:|---:|---:|---:|
+| Caso base, 750 m | 1.01 m | 0.55 M | 13 | 0.86 s |
+| Cono de 2 km | 1.01 m | 3.92 M | 38 | 9.5 s |
+| Cono de 4 km | 2.00 m | 4.00 M | 58 | 18.4 s |
+
+El costo sigue siendo O(celdas × bancos): el núcleo bajó la constante, no el orden.
 
 **La implementación en Python NO se borró.** Cada kernel conserva su gemela legible
 (`_rasterizar_python`, `_distancia_python`, `_contornos_python`) y

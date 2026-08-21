@@ -29,7 +29,7 @@ y el Ing. Yhonny Ruiz valide el diseño generado contra el suyo.
 - Núcleo de cálculo en **C++20 con nanobind** (`pitpy._nucleo`): rasterizado de la
   malla, distancia euclídea exacta y marching squares. La API no cambia; cambia el
   reloj. Rasterizar un pit de 4 km pasó de 275 s a 0.88 s, y `disenar()` sobre el
-  caso base de 3.69 s a 0.93 s. Cada kernel conserva su gemela en Python como
+  caso base, a la misma resolución, de 4.59 s a 0.86 s. Cada kernel conserva su gemela en Python como
   referencia verificable y como respaldo si se instala sin compilador.
 
 ### Cambiado

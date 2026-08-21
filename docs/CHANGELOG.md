@@ -58,16 +58,29 @@ Kernel contra kernel, y en la misma corrida se verifica que dan lo mismo:
   cono 4 km, paso 2 m              4.00 M   275.40s    0.876s    314.3x  identico
 ```
 
-De punta a punta:
+De punta a punta, apagando y prendiendo el núcleo sobre el mismo pit y la misma
+resolución:
 
 ```
-  caso                                    bancos   disenar()   antes
-  caso base real 750 m                     13      0.93s       3.69s
-  cono 2 km, 38 bancos                     38      2.45s      16.19s
-  cono 4 km, 58 bancos                     58      6.03s      23.16s
+  caso base real, 0.55 M celdas, 13 bancos:  Python 4.59s  ->  C++ 0.86s   (5.1x)
 ```
 
-**El kernel rinde 200-300×, el diseño completo 4-6×.** Vale decirlo con todas las letras:
+Y lo que cuesta hoy cada tamaño, a la resolución por omisión:
+
+```
+  caso base real   750 m   paso 1.01 m   0.55 M celdas   13 bancos    0.86s
+  cono de 2 km    2000 m   paso 1.01 m   3.92 M celdas   38 bancos    9.49s
+  cono de 4 km    4000 m   paso 2.00 m   4.00 M celdas   58 bancos   18.42s
+```
+
+⚠️ **Ojo con comparar contra los números que anoté antes en esta misma sesión**
+(«cono de 2 km: 2.45 s»): esos se midieron con el tope de grilla en 1000 celdas por
+lado. Al subirlo a 2000 —que es lo que resuelve la berma— esos pits pasan a
+calcularse con **cuatro veces más celdas**, y por eso hoy tardan más. No es una
+regresión: es más resolución. La comparación válida es a igual resolución, la de
+arriba.
+
+**El kernel rinde 200-300×, el diseño completo 5×.** Vale decirlo con todas las letras:
 lo que quedaba fuera de los kernels ya era numpy, y numpy ya corría en C. Quien espere 300×
 en el reloj de pared va a quedar decepcionado, y no porque el núcleo esté mal.
 
