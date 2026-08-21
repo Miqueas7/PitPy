@@ -40,7 +40,8 @@ un desarrollador.
 4. **`API_CONTRACTS.md`** — el contrato que consume PitForge. Cambiarlo sin
    avisar rompe la app.
 5. **`ROADMAP.md`** — qué hacer, en qué orden, y cómo saber que está bien.
-6. **`../CLAUDE.md`** — las reglas de tu dominio.
+6. **El archivo de instrucciones del repositorio** — las reglas de tu dominio. No
+   está versionado: vive en la raíz del repo, en tu copia local.
 
 ## Preparar el entorno
 

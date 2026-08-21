@@ -17,5 +17,6 @@ htmlcov/
 # entro a produccion en otro proyecto porque el riesgo estaba anotado, no bloqueado)
 .claude/
 .impeccable/
+CLAUDE.md
 .github/skills/
 .github/hooks/

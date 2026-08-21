@@ -258,7 +258,7 @@ tres decisiones que estaban abiertas y bloqueando (L-3 del tablero), y de yapa s
 |---|---|
 | `pytest tests/test_caso_base.py::test_genera_trece_bancos` | ✅ pasa. `xfail` quitado |
 | 13 bancos cada 10 m entre 230 y 350 | ✅ 13 bancos, cotas 230..350, pie del más bajo en la 220 |
-| Comparar contra el diseño de referencia (CLAUDE.md, regla 1) | ✅ test nuevo `test_los_bancos_caen_sobre_el_diseno_que_hizo_el_ingeniero`: **mediana 2.83 m** sobre 19,292 puntos de pie contra el archivo 4 |
+| Comparar contra el diseño de referencia (regla 1 de las instrucciones del repo) | ✅ test nuevo `test_los_bancos_caen_sobre_el_diseno_que_hizo_el_ingeniero`: **mediana 2.83 m** sobre 19,292 puntos de pie contra el archivo 4 |
 | Decisión de representación anotada con su porqué | ✅ `ARQUITECTURA.md` §6-8 |
 
 **3. Verificación reproducible**
@@ -318,7 +318,8 @@ criterio de aceptación y se agregó el test contra el archivo 4), `docs/ARQUITE
 
 Ninguno todavía: el árbol venía sucio con los cambios de la instalación de la orquestación
 (L-6 del tablero, decisión pendiente de Miqueas). Propuesta: dos commits separados — uno con
-lo de la instalación (`.gitignore`, `CLAUDE.md`, `docs/APP_REQUESTS.md`) y otro con MOT-1.
+lo de la instalación (`.gitignore`, las instrucciones del repo, `docs/APP_REQUESTS.md`)
+y otro con MOT-1.
 
 **6. Impacto en el otro dominio**
 
