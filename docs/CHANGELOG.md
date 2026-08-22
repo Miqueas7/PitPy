@@ -5,6 +5,85 @@ verificó, qué quedó pendiente).
 
 ---
 
+## 2026-08-22 — La App respondió los cuatro REQ · corrección del progreso · REQ-MOT-005
+
+**1. Qué y por qué**
+
+El agente de PitForge respondió los cuatro `REQ-MOT` abiertos. Esta entrada registra qué
+cambió para el motor y una corrección que salió de ir a responderles.
+
+**Lo que cambió del otro lado, y es grande:** PitForge dejó de ser una app de escritorio.
+Es una **plataforma web alojada** — FastAPI en un VPS Linux, React en el navegador — por
+decisión de Miqueas del 2026-08-21. Ni Tkinter, ni PySide6, ni PyInstaller, ni `.exe`.
+
+**2. Respuestas, y qué implica cada una para el motor**
+
+| REQ | Veredicto de la App | Qué implica acá |
+|---|---|---|
+| **001** — extensión C++ en el `.exe` | ✅ Cerrado: cae por cambio de plataforma | Ya no hay empaquetado que verificar. Chequearon mi `CMakeLists` y confirmaron que no hay `-march=native`: corre en cualquier VPS. Y sacaron del `skip = "*-musllinux*"` que su imagen Docker va sobre **Debian, no Alpine** — sobre Alpine, pip compilaría desde el sdist y podría caer al respaldo en Python sin avisar |
+| **002** — sobre-estéril negativo | ✅ Aceptado, con mi sugerencia adoptada | El recuadro cambia de rótulo según el signo: «SOBRE-ESTÉRIL» / «MINERAL PERDIDO EN BERMAS» |
+| **003** — pendiente lograda, `trazar_rampa`, advertencias | ✅ Aceptado, los tres puntos | Tomaron la pendiente lograda como **regla general**: la pantalla nunca muestra un valor del formulario, muestra lo que devolvió el motor |
+| **004** — cómo llega React al motor | ✅ **Ni A ni B: opción C** | `import pitpy` y llamada directa **en proceso**. **MOT-6 deja de bloquear a la App** |
+
+**Lo más importante para planificar: MOT-6 (`cli disenar`) ya no es prioridad.** La App no
+lo va a usar — llama a `disenar()` como librería y le pasa su propia función al callback
+`progreso`, que reemite al navegador por SSE. El CLI sigue teniendo sentido para los
+usuarios de la librería (esto es open source), pero deja de estar en el camino crítico.
+Pidieron explícitamente: **no lo pongas antes de MOT-5**. MOT-5 ya está cerrado.
+
+También pidieron dos cosas baratas: seguir publicando rueda **manylinux** (ya se publica;
+alcanza con no sacarla) y **abrir un REQ-MOT si cambian las etapas de `progreso()`**.
+
+**3. Un error que encontré al ir a contestarles**
+
+Justamente las etapas de progreso habían cambiado con MOT-5 — y estaban mal:
+
+```
+antes:  ("trazando rampa", 1.0)  →  ("recortando topografía", 0.90)
+```
+
+**La fracción retrocedía.** Con la barra de PitForge mapeada uno a uno, eso la hace saltar
+hacia atrás a mitad del cálculo. Corregido: la fracción es siempre creciente y termina en
+1.0, y las cuatro etapas se emiten **siempre**, aunque no haya trabajo que hacer — si una
+etapa desaparece cuando el usuario destilda la rampa, la barra se cuelga esperándola.
+
+`tests/test_progreso.py` (5 tests) blinda las dos propiedades: orden de etapas y fracción
+monótona hasta 1.0.
+
+**4. Verificación reproducible**
+
+```
+$ .venv/Scripts/python -m pytest -q
+123 passed in 43.09s
+```
+
+**5. Archivos**
+
+Nuevos: `tests/test_progreso.py`. Modificados: `src/pitpy/__init__.py` (fracciones
+monótonas), `docs/API_CONTRACTS.md` (la tabla de etapas pasa a ser contrato, no intención),
+`docs/APP_REQUESTS.md` (REQ-MOT-005 nuevo; estados de 001-004 actualizados), `CHANGELOG.md`.
+
+**6. Impacto en el otro dominio**
+
+**REQ-MOT-005 abierto**, que es exactamente lo que la App pidió que hiciera si esto pasaba.
+Trae la lista definitiva de etapas con sus fracciones, y aclara las dos que están en el
+contrato y **no** se emiten: `"leyendo"` (leer el DXF lo hace el consumidor) y
+`"calculando volúmenes"` (sucede dentro de `Diseno.reporte()`, que no recibe callback —
+ofrecí agregarlo si les sirve, son ~0.2 s).
+
+**7. Qué quedó pendiente**
+
+- **El tablero está desactualizado y lo señaló la App**, no yo: `APP-1` sigue diciendo
+  «elegir toolkit, recomendación Tkinter», y `APP-2`/`APP-3` están escritos para una app de
+  escritorio que ya no existe. Es trabajo del Orquestador; queda anotado acá porque nadie
+  más lo va a levantar.
+- **MOT-6** baja de prioridad: ya no bloquea a nadie.
+- **VAL-1** sube: el motor entrega bancos, rampa, volúmenes y recorte de terreno. Es el
+  momento de que Yhonny vea algo.
+- Sigue pendiente la malla de superficie del DXF (MOT-3) y forzar el ancho de fondo.
+
+---
+
 ## 2026-08-21 — MOT-5: recorte con topografía
 
 **1. Qué y por qué**

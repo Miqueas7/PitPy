@@ -151,10 +151,24 @@ que más va a ver el usuario.
 ## Contrato de progreso
 
 `disenar()` acepta un callback `progreso(etapa: str, fraccion: float)`. PitForge
-lo usa para la barra de avance. Etapas previstas:
+lo usa para la barra de avance y tiene los textos mapeados uno a uno, así que esto
+**es contrato, no orientativo**: cambiarlo obliga a un REQ-MOT.
 
-`"leyendo"` → `"detectando talud"` → `"generando bancos"` → `"trazando rampa"` →
-`"recortando topografía"` → `"calculando volúmenes"`
+| Etapa | Fracción | Cuándo se emite |
+|---|---|---|
+| `"detectando talud"` | 0.05 | siempre |
+| `"generando bancos"` | 0.20 | siempre |
+| `"trazando rampa"` | 0.60 | **siempre**, incluso con `trazar_rampa=False` |
+| `"recortando topografía"` | 0.90 → 1.0 | **siempre**, incluso sin `topografia` |
+
+**Las cuatro se emiten siempre, aunque no haya trabajo que hacer**: una etapa que
+desaparece deja la barra colgada esperándola. **La fracción nunca retrocede** y
+siempre termina en 1.0. Hay tests que blindan las dos cosas (`tests/test_progreso.py`).
+
+Dos etapas que se habían previsto y **NO** se emiten: `"leyendo"` (el motor recibe
+la carcaza ya leída — leer el DXF es `leer_carcaza()`, del lado del consumidor) y
+`"calculando volúmenes"` (ese trabajo sucede en `Diseno.reporte()`, que todavía no
+recibe callback; son ~0.2 s sobre el caso base). Ver REQ-MOT-005.
 
 ## Pendientes de contrato
 

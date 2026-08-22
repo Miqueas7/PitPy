@@ -76,13 +76,16 @@ def disenar(carcaza, parametros, topografia=None, progreso=None):
     construccion = construir(carcaza, parametros, talud_global=talud)
     bancos = lineas(construccion)
 
+    # Las cuatro etapas se emiten SIEMPRE, aunque no haya trabajo que hacer, y con
+    # la fracción siempre creciendo. PitForge tiene los textos mapeados uno a uno y
+    # reemite cada uno al navegador: una etapa que desaparece deja la barra colgada
+    # a mitad de camino, y una fracción que retrocede la hace saltar hacia atrás.
+    avisar("trazando rampa", 0.60)
     rampa = None
     if parametros.trazar_rampa:
-        avisar("trazando rampa", 0.60)
         from .rampa import trazar
         rampa = trazar(construccion, parametros)
         construccion.rampa = rampa
-    avisar("trazando rampa", 1.0)
 
     avisar("recortando topografía", 0.90)
     if topografia is not None:

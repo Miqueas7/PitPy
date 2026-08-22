@@ -60,6 +60,13 @@ y el Ing. Yhonny Ruiz valide el diseño generado contra el suyo.
 - `topo.recortar()`, `topo.area_recortada_ha()`, `topo.cota_en()` y
   `superficie.muestrear_en()` como funciones del motor.
 
+### Corregido
+
+- La fracción de `progreso()` **retrocedía**: se emitía `("trazando rampa", 1.0)` y
+  después `("recortando topografía", 0.90)`, lo que hacía saltar hacia atrás una
+  barra de avance. Ahora es siempre creciente, termina en 1.0, y las cuatro etapas
+  se emiten aunque no haya trabajo que hacer.
+
 ### Cambiado
 
 - **`volumen_carcaza_m3` cambia de valor con topografía**, aunque la carcaza no se
