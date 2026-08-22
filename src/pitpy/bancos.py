@@ -1,9 +1,10 @@
 """Generación de bancos y bermas a partir de la carcaza.
 
-PENDIENTE DE IMPLEMENTAR. Es el corazón del motor.
+Es el corazón del motor. Implementado en MOT-1 (2026-08-21); las decisiones de
+representación y de anclaje están en `docs/ARQUITECTURA.md` §6-8.
 
-QUÉ TIENE QUE HACER
--------------------
+QUÉ HACE
+--------
 Dada una carcaza (superficie continua al talud global) y los parámetros,
 producir la secuencia de bancos: para cada cota, la línea de CRESTA y la de PIE,
 separadas por la berma.

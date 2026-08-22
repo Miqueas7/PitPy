@@ -1,6 +1,7 @@
 """Volúmenes y sobre-estéril.
 
-PENDIENTE DE IMPLEMENTAR.
+Implementado en MOT-2 (2026-08-21); el recorte con topografía cambia la referencia
+de los volúmenes y eso está explicado en `calcular()` y en `topo.py`.
 
 POR QUÉ ESTE MÓDULO EXISTE APARTE
 ---------------------------------
