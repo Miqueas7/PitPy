@@ -52,8 +52,21 @@ y el Ing. Yhonny Ruiz valide el diseño generado contra el suyo.
   gruesa. Coincide con el diseño completo en los seis radios probados sobre el caso base,
   a 0.06-0.92 s contra 2.0-2.7 s.
 
+- `disenar(..., topografia=...)`: recorta el diseño donde quedaba por encima del
+  terreno real. Va directo al "recorte directo" (mínimo contra el terreno en la
+  grilla), sin la etapa de "nivel suficiente" del ROADMAP: con la grilla ya
+  construida, recortar no es más difícil y da más valor. En el caso base:
+  0.40 ha recortadas, 2.1 % de la huella, con la rampa puesta.
+- `topo.recortar()`, `topo.area_recortada_ha()`, `topo.cota_en()` y
+  `superficie.muestrear_en()` como funciones del motor.
+
 ### Cambiado
 
+- **`volumen_carcaza_m3` cambia de valor con topografía**, aunque la carcaza no se
+  toca: antes se medía contra un plano imaginario a la altura de la cresta; con
+  terreno real esa referencia se reemplaza por el techo verdadero. En el caso
+  base: 11.27 M → 9.93 M m³. El número se vuelve más preciso, no distinto en su
+  significado.
 - `Rampa.pendiente` informa la pendiente **lograda**, no la pedida. Suelen coincidir;
   cuando respetar el radio obliga a alargar la rampa, la lograda es más tendida y el
   reporte lo dice en una advertencia.

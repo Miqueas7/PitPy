@@ -5,6 +5,109 @@ verificó, qué quedó pendiente).
 
 ---
 
+## 2026-08-21 — MOT-5: recorte con topografía
+
+**1. Qué y por qué**
+
+Etapa 5 del ROADMAP. El diseño se construye desde la carcaza sin saber dónde está el
+suelo: puede quedar por encima del terreno real, y ahí no hay roca que remover. `topo`
+baja esas celdas al terreno. Nunca las sube.
+
+**Decisión: se fue directo al recorte, salteando el "nivel suficiente".** El ROADMAP
+planteaba primero diseñar 1-2 bancos por encima del terreno y que el usuario recortara a
+mano con un booleano en su CAD, y después el recorte directo («muchísimo mejor», textual
+de Yhonny). Ese escalón intermedio existía para ahorrar trabajo — pero con la grilla de
+la decisión 6 ya construida, **recortar es `minimum(z_diseño, z_terreno)`**, una resta de
+arreglos. El escalón no ahorraba nada. `Parametros.bancos_sobre_topografia` queda
+declarado sin uso, por si un pit en ladera empinada lo necesita.
+
+**2. Criterio de aceptación → evidencia**
+
+| Criterio (ROADMAP §Etapa 5) | Evidencia |
+|---|---|
+| Recorte contra el terreno | ✅ `topo.recortar()`. Sobre el caso base: **0.40 ha recortadas, 2.1 % de la huella** |
+| No asumir terreno plano | ✅ los tests usan terreno sintético que corta el pit a media altura; el caso base es el benigno y aun así recorta |
+| Que ni una celda quede sobre el terreno | ✅ `test_el_diseno_recortado_nunca_supera_la_topografia_real`: exceso máximo `0.0` |
+
+**3. Verificación reproducible**
+
+```
+$ .venv/Scripts/python -m pytest -q
+118 passed in 45.44s
+```
+
+Caso base, mismos parámetros, con y sin topografía:
+
+```
+== SIN topografia ==            == CON topografia ==
+  area_diseno_ha    19.418        area_diseno_ha    19.418
+  sobre_area_ha      0.409        sobre_area_ha      0.409
+  volumen_carcaza  11275141.8     volumen_carcaza   9925719.1
+  volumen_diseno   11639852.1     volumen_diseno   10250906.4
+  sobre_esteril      364710.4     sobre_esteril      325187.4
+                                  + "El diseño se recortó contra la topografía en
+                                     0.40 ha (2.1 % de su huella)…"
+```
+
+**4. El área no cambia y el volumen sí — es lo correcto**
+
+`area_diseno_ha` es idéntica con y sin topografía: el recorte **baja el techo, no borra
+celdas**. La huella en planta del pit es la misma; lo que cambia es hasta dónde sube.
+
+**`volumen_carcaza_m3` también baja (11.27 M → 9.93 M m³) aunque la carcaza no se tocó.**
+Esto hay que entenderlo antes de leerlo como un bug: sin topografía el motor integra
+contra un plano imaginario a la altura de la cresta —la única referencia posible sin
+datos de terreno—; con terreno real, el techo pasa a ser el terreno. Lo que bajó es la
+imprecisión de la aproximación anterior, no la roca. `sobre_esteril_m3` sigue siendo la
+resta de los dos, ahora más precisa.
+
+**5. Un detalle de coma flotante que valió un umbral**
+
+`recortar()` y `area_recortada_ha()` no coincidían en el conteo de celdas: 184 celdas de
+diferencia en el caso sintético. Causa: rasterizar un plano perfectamente horizontal no
+devuelve el mismo `float` en cada celda (la interpolación baricéntrica da `59.99999999999999`
+en algunas), así que `z_despues < z_antes` era `True` por unos femtómetros. Se agregó
+`_TOLERANCIA_M = 1e-6` con el porqué escrito al lado. No es cosmético: sin eso, la
+advertencia le reportaría al usuario un recorte que no existió.
+
+**6. Archivos**
+
+Nuevos: `src/pitpy/topo.py` (implementado), `tests/test_topo.py` (12 tests).
+Modificados: `src/pitpy/superficie.py` (`muestrear_en`), `src/pitpy/bancos.py`
+(`Construccion.topografia`, `superficie_antes_de_topo` separada para no recalcular),
+`src/pitpy/volumen.py` (techo real + advertencia de recorte), `src/pitpy/__init__.py`
+(etapa de progreso `"recortando topografía"`), `tests/test_caso_base.py` (2 tests más),
+`docs/ROADMAP.md`, `docs/ARQUITECTURA.md` (decisión 12), `docs/API_CONTRACTS.md`,
+`README.md`, `CHANGELOG.md`.
+
+**7. Impacto en el otro dominio**
+
+**Sin REQ nuevo, pero con dos cosas anotadas en el contrato** que la App tiene que leer
+antes de conectar el reporte:
+
+- Que `volumen_carcaza_m3` cambie al pasar topografía **no es un bug**, y si la pantalla
+  compara reportes entre corridas con y sin terreno, va a ver un salto grande.
+- **Las líneas del DXF no se recortan.** Los volúmenes sí. Si la App ofrece "exportar
+  DXF" junto al reporte, esos dos artefactos no son consistentes entre sí, y la
+  advertencia lo dice explícitamente para que se pueda mostrar.
+
+Se emite además la etapa de progreso `"recortando topografía"`, que ya estaba prevista en
+el contrato y `UI.md` tiene mapeada.
+
+**8. Qué quedó pendiente**
+
+- **MOT-6 (`cli disenar`)** es lo único que falta del motor — y está **bloqueado por
+  REQ-MOT-004**: con React, la forma de la CLI depende de cómo la App vaya a hablar con
+  el motor (JSON por stdout, archivo, servidor). Construirla antes de esa respuesta es
+  trabajo tirado.
+- Las **líneas del DXF sin recortar** y la **malla de superficie** (pendiente desde
+  MOT-3), las dos con su porqué medido.
+- `bancos_sobre_topografia` declarado y sin uso.
+- **VAL-1**: el motor ya entrega bancos, rampa, volúmenes y recorte de terreno. Es
+  momento de mandarle algo a Yhonny.
+
+---
+
 ## 2026-08-21 — MOT-4: la rampa, con radio de giro respetado · REQ-MOT-003
 
 **1. Qué y por qué**

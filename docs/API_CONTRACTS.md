@@ -86,8 +86,22 @@ puede usar hoy contra el motor de verdad, y lo que necesita doble de prueba:
 | `disenar` | 🔨 **parcial**: bancos, rampa y volúmenes. No recorta topografía |
 | `Diseno.bancos()` | ✅ devuelve los bancos con su cresta y su pie |
 | `Diseno.rampa()` | ✅ funciona (2026-08-21). `Rampa.pendiente` es la **lograda**, no la pedida |
+| `disenar(..., topografia=...)` | ✅ funciona (2026-08-21). Recorta volúmenes y reporte; NO recorta las líneas del DXF |
 | `Diseno.reporte()` | ✅ funciona (2026-08-21). Sin rampa todavía: ver la nota del sobre-estéril |
 | `Diseno.a_dxf()` | 🔨 **parcial** (2026-08-21): escribe las líneas `CRESTA` y `PIE`. Las capas de superficie `BERMA` y `TALUD` todavía no |
+
+### Con topografía, `volumen_carcaza_m3` también cambia — no es un bug
+
+Sin `topografia`, los volúmenes se miden contra un plano imaginario a la altura de
+la cresta (como si el terreno original fuera plano ahí). **Con topografía real la
+referencia pasa a ser el terreno**, y eso hace bajar tanto `volumen_diseno_m3`
+como `volumen_carcaza_m3` — la carcaza no se tocó; lo que bajó fue la imprecisión
+de la aproximación anterior. En el caso base: 11.27 M → 9.93 M m³.
+`sobre_esteril_m3` sigue siendo la resta de los dos, ahora más precisa.
+
+`Reporte.advertencias` trae cuánta huella se recortó (en ha y en % de la huella)
+cuando el recorte hizo algo. **Las líneas `CRESTA`/`PIE` del DXF no se recortan**:
+siguen siendo la geometría teórica de cada banco a su cota fija.
 
 ### `Parametros.trazar_rampa: bool = True`
 
@@ -116,9 +130,11 @@ magnitud, no de significado, porque lo que importa es la resta.
 La API no cambia en nada — ninguna firma, ningún tipo de retorno—; lo que cambia es
 el empaquetado: hay una rueda por plataforma en vez de una universal. Ver REQ-MOT-001.
 
-De las etapas de `progreso()` hoy se emiten solo `"detectando talud"` y
-`"generando bancos"`. Las otras tres aparecen cuando exista lo que reportan; la
-fracción siempre termina en 1.0.
+Etapas de `progreso()` que se emiten hoy: `"detectando talud"`, `"generando
+bancos"`, `"trazando rampa"` y `"recortando topografía"` — las cuatro se emiten
+siempre, aunque no haya trabajo que hacer (sin rampa o sin topografía), con la
+fracción llegando a 1.0 igual. Falta `"calculando volúmenes"`: ese trabajo sucede
+dentro de `Diseno.reporte()`, que todavía no recibe callback de progreso.
 
 ## Errores
 

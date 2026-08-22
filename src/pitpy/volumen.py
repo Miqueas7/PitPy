@@ -35,12 +35,17 @@ from .modelo import Diseno, Reporte
 def calcular(diseno: Diseno) -> Reporte:
     """Volúmenes del diseño y sobre-estéril respecto de la carcaza.
 
-    El volumen se mide **desde el plano de la cresta hacia abajo**: es la única
-    referencia que el motor tiene mientras no exista el recorte con topografía
-    (MOT-5). Con topografía, la referencia pasa a ser el terreno y los dos números
-    cambian de magnitud —no de significado—, porque lo que importa es la RESTA.
+    El volumen se integra contra un TECHO: la cota por encima de la cual se
+    considera que no había nada que remover. Sin topografía, el único techo
+    posible es un plano imaginario a la altura de la cresta —como si el terreno
+    original fuera plano justo ahí—, que es una aproximación gruesa pero es la
+    única disponible. **Con topografía, el techo pasa a ser el terreno real**
+    donde cubre (y la cresta donde no), y con eso **los dos volúmenes bajan**
+    —también `volumen_carcaza_m3`, aunque la carcaza no se tocó—: lo que baja es
+    la calidad de la aproximación, no la roca. Ver `topo.py`.
     """
-    from .bancos import construir, superficie_disenada
+    from .bancos import construir, superficie_antes_de_topo
+    from .superficie import muestrear_en
 
     construccion = getattr(diseno, "construccion_", None)
     if construccion is None:
@@ -52,13 +57,27 @@ def calcular(diseno: Diseno) -> Reporte:
     celda = superficie.paso * superficie.paso
     cresta = construccion.cotas[-1] if construccion.cotas else construccion.fondo
 
-    z_carcaza = superficie.z
-    bajo_la_cresta = ~np.isnan(z_carcaza) & (z_carcaza <= cresta)
-    volumen_carcaza = float(np.sum(cresta - z_carcaza[bajo_la_cresta])) * celda
+    techo = np.full(superficie.z.shape, cresta)
+    if construccion.topografia is not None:
+        terreno = muestrear_en(construccion.topografia, superficie.origen,
+                               superficie.paso, superficie.z.shape)
+        cubre = ~np.isnan(terreno)
+        techo[cubre] = terreno[cubre]
 
-    z_diseno = superficie_disenada(construccion)
+    z_carcaza = superficie.z
+    hay_carcaza = ~np.isnan(z_carcaza)
+    volumen_carcaza = float(np.sum(
+        np.clip(techo[hay_carcaza] - z_carcaza[hay_carcaza], 0.0, None))) * celda
+
+    z_antes_topo = superficie_antes_de_topo(construccion)
+    if construccion.topografia is not None:
+        from .topo import recortar
+        z_diseno = recortar(z_antes_topo, superficie, construccion.topografia)
+    else:
+        z_diseno = z_antes_topo
     hay_diseno = ~np.isnan(z_diseno)
-    volumen_diseno = float(np.sum(cresta - z_diseno[hay_diseno])) * celda
+    volumen_diseno = float(np.sum(
+        np.clip(techo[hay_diseno] - z_diseno[hay_diseno], 0.0, None))) * celda
 
     area_carcaza = area_proyectada_ha(diseno.carcaza.caras)
     area_diseno = float(np.count_nonzero(hay_diseno)) * celda / 1e4
@@ -74,11 +93,12 @@ def calcular(diseno: Diseno) -> Reporte:
         cota_fondo=construccion.fondo,
         cota_cresta=cresta,
         longitud_rampa_m=diseno.rampa_.longitud if diseno.rampa_ else 0.0,
-        advertencias=_advertencias(diseno, construccion),
+        advertencias=_advertencias(diseno, construccion, z_antes_topo, z_diseno),
     )
 
 
-def _advertencias(diseno: Diseno, construccion) -> list[str]:
+def _advertencias(diseno: Diseno, construccion, z_antes_topo: np.ndarray,
+                  z_diseno: np.ndarray) -> list[str]:
     """Lo que el usuario tiene que saber sin tener que mirar la geometría.
 
     Redactadas en el idioma del oficio: PitForge las muestra tal cual.
@@ -106,6 +126,22 @@ def _advertencias(diseno: Diseno, construccion) -> list[str]:
         avisos.append(
             "El diseño todavía no incluye rampa: el sobre-estéril informado es solo "
             "el costo de los bancos y las bermas.")
+
+    if construccion.topografia is not None:
+        from .topo import area_recortada_ha
+
+        afectada = area_recortada_ha(z_antes_topo, z_diseno,
+                                     construccion.superficie.paso)
+        if afectada > 0:
+            huella_ha = (float(np.count_nonzero(~np.isnan(z_antes_topo)))
+                        * construccion.superficie.paso ** 2 / 1e4)
+            avisos.append(
+                f"El diseño se recortó contra la topografía en {afectada:.2f} ha "
+                f"({100 * afectada / huella_ha:.1f} % de su huella): ahí el "
+                f"diseño quedaba por encima del terreno real. Los volúmenes ya "
+                f"reflejan el recorte; las líneas de cresta y pie exportadas al "
+                f"DXF todavía no —son la geometría teórica de banco, no una "
+                f"malla.")
 
     minimo = parametros.ancho_fondo_minimo
     if minimo is not None:

@@ -183,6 +183,36 @@ Y como el suavizado acorta el desarrollo de forma **no proporcional** (trazar al
 818 m y trazar al 6.5 % dio 1,219 m), no sirve un solo ajuste de pendiente: se prueba una
 escalera de trazas y se toma la primera que alcanza la salida.
 
+**12. La topografía recorta el diseño directamente, sin la etapa intermedia**
+(2026-08-21, MOT-5).
+
+El ROADMAP planteaba dos escalones: primero el "nivel suficiente" —diseñar 1-2 bancos
+por encima del terreno y que el usuario recorte a mano con un booleano en su CAD— y
+después el recorte directo, que es lo que Yhonny realmente quiere. Se fue directo al
+segundo, y la razón es la decisión 6: **con la superficie ya en una grilla, recortar es
+`minimum(z_diseño, z_terreno)`**, una resta de arreglos. El escalón intermedio existía
+para ahorrar trabajo que, con esta representación, no cuesta.
+
+`Parametros.bancos_sobre_topografia` queda declarado pero sin uso. No se borra: si
+aparece un pit en ladera empinada donde el margen haga falta, el parámetro ya está en
+el contrato y no hay que romper nada para retomarlo.
+
+**El recorte cambia la referencia de los volúmenes, y eso hay que decirlo.** Sin
+topografía el motor integra contra un plano imaginario a la altura de la cresta —la
+única referencia posible sin datos—. Con terreno real, el techo pasa a ser el terreno, y
+**`volumen_carcaza_m3` también baja** aunque la carcaza no se haya tocado: 11.27 M →
+9.93 M m³ en el caso base. Lo que bajó es la imprecisión de la aproximación anterior.
+
+**Lo que NO recorta:** las líneas `CRESTA`/`PIE` del DXF. Son contornos a cota fija
+(decisión 7) y el recorte produce una curva irregular que no es una línea de banco. El
+reporte lo dice en una advertencia en vez de entregar líneas que parecen diseño y no lo
+son.
+
+Medido sobre el caso base: el diseño protruía sobre el terreno en **0.40 ha (2.1 % de su
+huella)** con la rampa puesta, hasta 18 m en el punto peor. La topografía del caso base
+tiene el 93 % de sus caras bajo 5°, o sea que **ni el terreno más benigno es plano**: si
+el recorte hiciera falta solo en laderas empinadas, este número sería cero.
+
 ## Lo que NO se decidió todavía
 
 - **Algoritmo de trazado de rampa**: helicoidal simple contra búsqueda con

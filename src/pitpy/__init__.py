@@ -52,10 +52,13 @@ def disenar(carcaza, parametros, topografia=None, progreso=None):
     Raises:
         GeometriaInvalida, RampaImposible
 
-    ESTADO: v0.1.0-dev. Hoy llega hasta los bancos (MOT-1). La rampa (MOT-4), el
-    recorte con topografía (MOT-5) y el reporte de volúmenes (MOT-2) todavía no
-    están: `Diseno.rampa()` devuelve None y `Diseno.reporte()` levanta
-    NotImplementedError. Las etapas de progreso que faltan tampoco se emiten.
+    ESTADO: v0.1.0-dev. Bancos (MOT-1), volúmenes (MOT-2), líneas de DXF (MOT-3),
+    rampa (MOT-4) y recorte con topografía (MOT-5) ya funcionan. Falta cerrar el
+    flujo por CLI (MOT-6). La malla de superficie del DXF sigue sin escribirse
+    (ver docs/ROADMAP.md §Etapa 3), y la topografía solo recorta el techo de
+    volúmenes/DXF — las líneas de banco exportadas siguen siendo la geometría
+    teórica, sin recortar (mismo motivo: son contornos a cota fija, no una
+    malla).
     """
     from .modelo import Diseno
 
@@ -80,6 +83,11 @@ def disenar(carcaza, parametros, topografia=None, progreso=None):
         rampa = trazar(construccion, parametros)
         construccion.rampa = rampa
     avisar("trazando rampa", 1.0)
+
+    avisar("recortando topografía", 0.90)
+    if topografia is not None:
+        construccion.topografia = topografia
+    avisar("recortando topografía", 1.0)
 
     return Diseno(bancos_=bancos, rampa_=rampa, carcaza=carcaza,
                   parametros=parametros, construccion_=construccion)

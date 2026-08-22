@@ -112,3 +112,41 @@ def test_los_bancos_caen_sobre_el_diseno_que_hizo_el_ingeniero(caso_base):
     d = disenar(leer_carcaza(caso_base["suavizada"]), Parametros(**PARAMETROS_DE_YHONNY))
 
     assert desvio_contra_referencia(d, caso_base["disenado"]) <= 4.0
+
+
+def test_la_topografia_recorta_el_diseno_del_caso_base(caso_base):
+    """El caso real: terreno benigno (93 % de caras bajo 5 grados), pero no
+    perfectamente plano — el diseño protrude sobre él en un puñado de celdas.
+
+    Medido el 2026-08-21: 0.40 ha (2.1 % de la huella) con los parámetros de
+    Yhonny y la rampa puesta. No es cero: confirma que incluso un terreno
+    "benigno" no es plano, y por eso el recorte hace falta.
+    """
+    from pitpy import Parametros, disenar, leer_carcaza, leer_topografia
+
+    d = disenar(leer_carcaza(caso_base["suavizada"]), Parametros(**PARAMETROS_DE_YHONNY),
+                topografia=leer_topografia(caso_base["topografia"]))
+    r = d.reporte()
+
+    assert any("topograf" in a.lower() for a in r.advertencias)
+    assert 0.05 < r.sobre_area_ha < 1.0    # sigue habiendo un numero, no cero ni disparatado
+
+
+def test_el_diseno_recortado_nunca_supera_la_topografia_real(caso_base):
+    """La garantía física de `topo.recortar`: ni una celda del diseño puede
+    quedar por encima del terreno real donde el terreno cubre."""
+    import numpy as np
+
+    from pitpy import Parametros, disenar, leer_carcaza, leer_topografia
+    from pitpy.bancos import superficie_disenada
+    from pitpy.superficie import muestrear_en
+
+    topo = leer_topografia(caso_base["topografia"])
+    d = disenar(leer_carcaza(caso_base["suavizada"]), Parametros(**PARAMETROS_DE_YHONNY),
+                topografia=topo)
+    con = d.construccion_
+    z = superficie_disenada(con)
+    z_terreno = muestrear_en(topo, con.superficie.origen, con.superficie.paso, z.shape)
+
+    cubre = ~np.isnan(z_terreno) & ~np.isnan(z)
+    assert float((z[cubre] - z_terreno[cubre]).max()) < 1e-6

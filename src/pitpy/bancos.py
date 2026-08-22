@@ -51,7 +51,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from .modelo import Banco, Carcaza, Parametros
+from .modelo import Banco, Carcaza, Malla, Parametros
 from .superficie import Superficie, cabe_circulo, distancia_hasta
 from .taludes import cara_banco_desde_global
 
@@ -72,6 +72,7 @@ class Construccion:
     avance_total: float
     cara: float
     rampa: object = None       # la traza `rampa.trazar()`; None hasta entonces
+    topografia: Malla | None = None   # ver topo.recortar(); None => sin recorte
 
 
 def construir(carcaza: Carcaza, parametros: Parametros, talud_global: float,
@@ -146,7 +147,21 @@ def lineas(c: Construccion) -> list[Banco]:
 
 
 def superficie_disenada(c: Construccion) -> np.ndarray:
-    """La cota del diseño en cada celda, con la rampa ya cortada si la hay."""
+    """La cota del diseño en cada celda: bancos, rampa y recorte de topografía,
+    todo lo que haya. Ver `superficie_antes_de_topo` si hace falta el paso
+    intermedio (por ejemplo, para medir cuánto cambió el recorte)."""
+    z = superficie_antes_de_topo(c)
+    if c.topografia is not None:
+        from .topo import recortar
+        z = recortar(z, c.superficie, c.topografia)
+    return z
+
+
+def superficie_antes_de_topo(c: Construccion) -> np.ndarray:
+    """La cota del diseño con la rampa ya cortada, pero SIN recortar contra la
+    topografía. Separado de `superficie_disenada` para no recalcular bancos y
+    rampa dos veces cuando alguien necesita comparar antes y después del recorte
+    (la advertencia de `volumen.py` lo hace)."""
     z = superficie_de_bancos(c)
     if c.rampa is not None:
         from .rampa import aplicar

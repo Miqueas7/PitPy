@@ -38,7 +38,7 @@ reporte de volúmenes.
 | `volumen` — áreas, volúmenes y sobre-estéril | ✅ funciona |
 | `dxf` — escritura por capas | 🔨 líneas sí, malla de superficie no |
 | `rampa` — trazado con radio de giro | ✅ funciona |
-| `topo` — recorte contra topografía | ⬜ especificado |
+| `topo` — recorte contra topografía | ✅ funciona (volúmenes; las líneas del DXF no se recortan) |
 
 Contra el caso base —una carcaza de 18,703 caras y el diseño que el mismo
 ingeniero hizo a mano— el motor genera los 13 bancos cada 10 m entre las cotas

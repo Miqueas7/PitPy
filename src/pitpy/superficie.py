@@ -205,6 +205,25 @@ def _corte(v1: float, v2: float, valor: float) -> float:
     return min(1.0, max(0.0, (valor - v1) / (v2 - v1)))
 
 
+def muestrear_en(malla: Malla, origen: tuple[float, float], paso: float,
+                 forma: tuple[int, int]) -> np.ndarray:
+    """Rasteriza CUALQUIER malla sobre una grilla YA DEFINIDA (mismo origen, paso
+    y forma que otra superficie).
+
+    Es lo que necesita `topo.recortar()`: poner el terreno en la MISMA grilla que
+    el diseño para poder compararlos celda a celda con una resta de arreglos, en
+    vez de reproyectar puntos uno por uno.
+
+    NaN donde la malla dada no tiene superficie — el terreno puede no cubrir toda
+    la huella del diseño, y eso hay que poder distinguirlo de "el terreno está a
+    cota 0".
+    """
+    tris = np.array([t[:3] for t in _triangulos(malla.caras)], dtype=np.float64)
+    if tris.size == 0:
+        return np.full(forma, np.nan)
+    return _rasterizar(tris, origen, paso, forma)
+
+
 def contornos(campo: np.ndarray, valor: float, paso: float,
               origen: tuple[float, float], z: float) -> list[list[tuple]]:
     """Anillos cerrados donde `campo` cruza `valor`. Dentro es `campo <= valor`."""

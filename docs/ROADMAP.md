@@ -154,6 +154,25 @@ Después el recorte directo, que es lo que él querría.
 caras bajo 5°—. No asumas que siempre lo será. Un pit en ladera empinada rompe
 cualquier atajo que dependa de terreno plano.
 
+**Estado al 2026-08-21: cumplido, yendo directo al recorte.** Con la grilla ya
+construida (decisión 6), recortar es una resta de arreglos, no más difícil que
+el "nivel suficiente" — así que se implementó directo, sin la etapa intermedia.
+Medido sobre el caso base (con rampa): **0.40 ha recortadas (2.1 % de la
+huella)**, donde el diseño quedaba por encima del terreno real. Que el terreno
+sea "benigno" no lo hace plano: 93 % de caras bajo 5° no es lo mismo que 0°.
+
+**Consecuencia que hay que conocer:** con topografía, `volumen_carcaza_m3`
+**también baja** (11.27 M → 9.93 M m³ en el caso base), aunque la carcaza no se
+tocó. Antes se medía contra un plano imaginario a la altura de la cresta; con
+terreno real esa aproximación se reemplaza por el techo verdadero, y el número
+se vuelve más preciso, no distinto en su significado.
+
+**Lo que sigue sin hacer:** las líneas de cresta y pie exportadas al DXF no se
+recortan —son contornos a cota fija (decisión 7), y el recorte real produce una
+curva irregular que no encaja en ese modelo—. Solo los volúmenes y el reporte
+son topografía-conscientes. Ídem la malla de superficie del DXF, pendiente desde
+MOT-3.
+
 ---
 
 ## Etapa 6 — `cli disenar` y entrega a PitForge
